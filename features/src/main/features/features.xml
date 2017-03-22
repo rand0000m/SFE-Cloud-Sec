@@ -25,6 +25,7 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
   <feature name='odl-cloud-sec' version='${project.version}' description='OpenDaylight :: cloud-sec'>
     <feature version='${mdsal.version}'>odl-mdsal-broker</feature>
     <feature version='${project.version}'>odl-cloud-sec-api</feature>
+    <feature version="${openflowplugin.version}">odl-openflowplugin-flow-services</feature>
     <bundle>mvn:com.orange.cloudsec/cloud-sec-impl/{{VERSION}}</bundle>
   </feature>
   <feature name='odl-cloud-sec-rest' version='${project.version}' description='OpenDaylight :: cloud-sec :: REST'>
