@@ -46,5 +46,15 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
       <artifactId>model-flow-service</artifactId>
       <version>0.3.2-Boron-SR2</version>
     </dependency>
+    <dependency>
+      <groupId>org.opendaylight.mdsal.model</groupId>
+      <artifactId>ietf-topology</artifactId>
+      <version>2013.10.21.10-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.osgi.foundation</artifactId>
+      <version>1.2.0</version>
+    </dependency>
   </dependencies>
 </project>
