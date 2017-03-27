@@ -11,12 +11,14 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.CheckedFuture;
 import org.opendaylight.controller.config.yang.md.sal.binding.NotificationProviderServiceServiceInterface;
+import org.opendaylight.controller.liblldp.Ethernet;
 import org.opendaylight.controller.md.sal.binding.api.*;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.controller.sal.binding.api.RpcProviderRegistry;
 import org.opendaylight.openflowplugin.api.OFConstants;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.Uri;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.OutputActionCaseBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.action.output.action._case.OutputActionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.action.types.rev131112.action.list.ActionBuilder;
@@ -53,6 +55,7 @@ import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyKey;
+import org.opendaylight.yangtools.yang.binding.DataContainer;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
@@ -261,7 +264,6 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
         if (etherType == 0x88cc) {
             return;
         }*/
-        LOG.info("New PACKET");
         NodeKey nodeKey = null;
         Iterable<InstanceIdentifier.PathArgument> pathArgs = packetReceived.getIngress().getValue().getPathArguments();
         for(InstanceIdentifier.PathArgument pathArgument: pathArgs){
@@ -293,11 +295,31 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
                                 .setEgress(egress)
                                 .build();
                         packetProcessingService.transmitPacket(input);
+                        Ethernet etherPacket = new Ethernet();
+                        byte[] payload = packetReceived.getPayload();
+                        etherPacket.deserialize(payload, 0, payload.length);
+
+                        LOG.info("Transmitted packet from {} to {} - EtherType {}",
+                                bytesToHex(etherPacket.getSourceMACAddress()),
+                                bytesToHex(etherPacket.getDestinationMACAddress()),
+                                Integer.toHexString(etherPacket.getEtherType() & 0xffff));
                     }
                 }
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for ( int j = 0; j < bytes.length; j++ ) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 }
