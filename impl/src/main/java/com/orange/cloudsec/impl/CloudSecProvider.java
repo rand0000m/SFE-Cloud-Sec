@@ -7,6 +7,7 @@
  */
 package com.orange.cloudsec.impl;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.CheckedFuture;
 import org.opendaylight.controller.config.yang.md.sal.binding.NotificationProviderServiceServiceInterface;
@@ -42,6 +43,9 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instru
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorRef;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeRef;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.node.NodeConnector;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.packet.service.rev130709.*;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
 import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
@@ -59,6 +63,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoCloseable, PacketProcessingListener {
@@ -256,24 +261,43 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
         if (etherType == 0x88cc) {
             return;
         }*/
-        /*InstanceIdentifier<Node> node = InstanceIdentifier.create(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes.class)
-                .child(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node.class,
-                        new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey(
-                                new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId(nodeName)))
-                .augmentation(FlowCapableNode.class)
-                .child(Table.class, new TableKey(new Short("0")))
-                .child(Flow.class, new FlowKey(flowId));
+        LOG.info("New PACKET");
+        NodeKey nodeKey = null;
+        Iterable<InstanceIdentifier.PathArgument> pathArgs = packetReceived.getIngress().getValue().getPathArguments();
+        for(InstanceIdentifier.PathArgument pathArgument: pathArgs){
+            if(pathArgument instanceof InstanceIdentifier.IdentifiableItem){
+                if(((InstanceIdentifier.IdentifiableItem) pathArgument).getKey() instanceof NodeKey)
+                    nodeKey = (NodeKey) ((InstanceIdentifier.IdentifiableItem) pathArgument).getKey();
+            }
+        }
+        InstanceIdentifier<org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node> node =
+                InstanceIdentifier.create(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes.class)
+                .child(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node.class, nodeKey);
 
-
-        //Construct input for RPC call to packet processing service
-        TransmitPacketInput input = new TransmitPacketInputBuilder()
-                .setPayload(packetReceived.getPayload())
-                .setNode(ingressNodeRef)
-                .setIngress(packetReceived.getIngress())
-                .setEgress(egressNodeConnectorRef)
-                .build();
-        packetProcessingService.transmitPacket(input);*/
-        Iterable<InstanceIdentifier.PathArgument> a = packetReceived.getIngress().getValue().getPathArguments();
-        (packetReceived.getIngress().getValue().getPath().get(1).getKey() instanceof org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey) == true
+        NodeConnectorRef egress;
+        ReadOnlyTransaction readOnlyTransaction = dataBroker.newReadOnlyTransaction();
+        try {
+            Optional<org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node> dataObjectOptional = null;
+            dataObjectOptional = readOnlyTransaction.read(LogicalDatastoreType.OPERATIONAL, node).get();
+            if(dataObjectOptional.isPresent()){
+                org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node dataNode =
+                        dataObjectOptional.get();
+                for(NodeConnector nc : dataNode.getNodeConnector()){
+                    if(packetReceived.getIngress() != nc){
+                        egress = new NodeConnectorRef(
+                                node.child(NodeConnector.class, nc.getKey()));
+                        TransmitPacketInput input = new TransmitPacketInputBuilder()
+                                .setPayload(packetReceived.getPayload())
+                                .setNode(new NodeRef(egress.getValue().firstIdentifierOf(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node.class)))
+                                .setIngress(packetReceived.getIngress())
+                                .setEgress(egress)
+                                .build();
+                        packetProcessingService.transmitPacket(input);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
