@@ -45,19 +45,11 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instru
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.Instruction;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorRef;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeRef;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.*;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.node.NodeConnector;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.packet.service.rev130709.*;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NetworkTopology;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.NodeId;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.TopologyId;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.topology.Node;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.Topology;
-import org.opendaylight.yang.gen.v1.urn.tbd.params.xml.ns.yang.network.topology.rev131021.network.topology.TopologyKey;
 import org.opendaylight.yangtools.yang.binding.DataContainer;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
@@ -88,8 +80,6 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
 
     private AtomicLong flowIdInc = new AtomicLong(0);
 
-    private Map<InstanceIdentifier<Node>,Switch> switches;
-
     public CloudSecProvider(final DataBroker dataBroker,
                             final NotificationService notificationService,
                             final SalFlowService salFlowService,
@@ -101,11 +91,10 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
         this.rpcProviderRegistry = rpcProviderRegistry;
     }
 
-    private void registerTopologyChangeListener(){
-        InstanceIdentifier<Node> path = InstanceIdentifier.create(NetworkTopology.class)
-                .child(Topology.class, new TopologyKey(new TopologyId("flow:1")))
+    private void registerInventoryChangeListener(){
+        InstanceIdentifier<Node> path = InstanceIdentifier.create(Nodes.class)
                 .child(Node.class);
-        final DataTreeIdentifier<Node> treeId = new DataTreeIdentifier<Node>(LogicalDatastoreType.OPERATIONAL, path);
+        final DataTreeIdentifier<Node> treeId = new DataTreeIdentifier<>(LogicalDatastoreType.OPERATIONAL, path);
         try {
             LOG.info("Cloud : Registering on {}", treeId);
             dataBroker.registerDataTreeChangeListener(treeId, this);
@@ -118,7 +107,7 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
      * Method called when the blueprint container is created.
      */
     public void init() {
-        registerTopologyChangeListener();
+        registerInventoryChangeListener();
         this.packetProcessingService = rpcProviderRegistry.getRpcService(PacketProcessingService.class);
         notificationService.registerNotificationListener(this);
         LOG.info("CloudSecProvider Session Initiated");
@@ -135,18 +124,16 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
     public void onDataTreeChanged(Collection<DataTreeModification<Node>> collection) {
         List<Flow> addFlows = new ArrayList<>();
         List<InstanceIdentifier<Flow>> addFlowPaths = new ArrayList<>();
-        List<InstanceIdentifier<org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node>> deleteFlowPaths = new ArrayList<>();
+        List<InstanceIdentifier<Node>> deleteFlowPaths = new ArrayList<>();
 
         for(DataTreeModification<Node> mod : collection){
             DataObjectModification<Node> rootNode = mod.getRootNode();
             if(rootNode.getModificationType() == DataObjectModification.ModificationType.WRITE){
                 if(rootNode.getDataBefore() == null){
                     FlowId flowId = new FlowId(Long.toString(flowIdInc.incrementAndGet()));
-                    String nodeName = mod.getRootNode().getDataAfter().getKey().getNodeId().getValue();
-                    InstanceIdentifier<Flow> flowPath = InstanceIdentifier.create(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes.class)
-                            .child(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node.class,
-                                    new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey(
-                                            new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId(nodeName)))
+                    NodeKey nodeKey = mod.getRootNode().getDataAfter().getKey();
+                    InstanceIdentifier<Flow> flowPath = InstanceIdentifier.create(Nodes.class)
+                            .child(Node.class, nodeKey)
                             .augmentation(FlowCapableNode.class)
                             .child(Table.class, new TableKey(new Short("0")))
                             .child(Flow.class, new FlowKey(flowId));
@@ -155,11 +142,9 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
                     LOG.info("Node {} created", mod.getRootPath().getRootIdentifier());
                 }
             }else if(rootNode.getModificationType() == DataObjectModification.ModificationType.DELETE){
-                String nodeName = mod.getRootNode().getDataBefore().getKey().getNodeId().getValue();
-                InstanceIdentifier<org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node> node = InstanceIdentifier.create(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes.class)
-                        .child(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node.class,
-                                new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey(
-                                        new org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId(nodeName)));
+                NodeKey nodeKey = mod.getRootNode().getDataBefore().getKey();
+                InstanceIdentifier<Node> node = InstanceIdentifier.create(Nodes.class)
+                        .child(Node.class, nodeKey);
                 deleteFlowPaths.add(node);
                 LOG.info("Node {} has been deleted", mod.getRootPath().getRootIdentifier());
             }
