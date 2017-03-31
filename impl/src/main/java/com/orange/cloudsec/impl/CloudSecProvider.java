@@ -10,6 +10,9 @@ package com.orange.cloudsec.impl;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.CheckedFuture;
+import org.jnetpcap.packet.JMemoryPacket;
+import org.jnetpcap.packet.JPacket;
+import org.jnetpcap.protocol.JProtocol;
 import org.opendaylight.controller.config.yang.md.sal.binding.NotificationProviderServiceServiceInterface;
 import org.opendaylight.controller.liblldp.Ethernet;
 import org.opendaylight.controller.md.sal.binding.api.*;
@@ -60,6 +63,10 @@ import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.jnetpcap.Pcap;
+import org.jnetpcap.PcapIf;
+import org.jnetpcap.packet.PcapPacket;
+import org.jnetpcap.packet.PcapPacketHandler;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -295,16 +302,21 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
                                 .setEgress(egress)
                                 .build();
                         packetProcessingService.transmitPacket(input);
-                        Ethernet etherPacket = new Ethernet();
-                        byte[] payload = packetReceived.getPayload();
-                        etherPacket.deserialize(payload, 0, payload.length);
-
-                        LOG.info("Transmitted packet from {} to {} - EtherType {}",
-                                bytesToHex(etherPacket.getSourceMACAddress()),
-                                bytesToHex(etherPacket.getDestinationMACAddress()),
-                                Integer.toHexString(etherPacket.getEtherType() & 0xffff));
                     }
                 }
+                Ethernet etherPacket = new Ethernet();
+                byte[] payload = packetReceived.getPayload();
+                etherPacket.deserialize(payload, 0, payload.length);
+
+                JPacket packet = new JMemoryPacket(JProtocol.ETHERNET_ID, payload);
+
+                LOG.info("Transmitted packet from {} to {} - EtherType {} - Ethernet : {} - IP4 : {} - IP6 : {}",
+                        bytesToHex(etherPacket.getSourceMACAddress()),
+                        bytesToHex(etherPacket.getDestinationMACAddress()),
+                        Integer.toHexString(etherPacket.getEtherType() & 0xffff),
+                        packet.hasHeader(JProtocol.ETHERNET_ID),
+                        packet.hasHeader(JProtocol.IP4_ID),
+                        packet.hasHeader(JProtocol.IP6_ID));
             }
 
         } catch (Exception e) {
@@ -313,6 +325,7 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
     }
 
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+    @org.jetbrains.annotations.NotNull
     public static String bytesToHex(byte[] bytes) {
         char[] hexChars = new char[bytes.length * 2];
         for ( int j = 0; j < bytes.length; j++ ) {

@@ -66,5 +66,15 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
       <artifactId>liblldp</artifactId>
       <version>0.11.2-Boron-SR2</version>
     </dependency>
+    <dependency>
+        <groupId>org.jetbrains</groupId>
+        <artifactId>annotations</artifactId>
+        <version>RELEASE</version>
+    </dependency>
+    <dependency>
+      <groupId>jnetpcap</groupId>
+      <artifactId>jnetpcap</artifactId>
+      <version>1.4.r1425-1f</version>
+    </dependency>
   </dependencies>
 </project>
