@@ -55,10 +55,6 @@ import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.jnetpcap.Pcap;
-import org.jnetpcap.PcapIf;
-import org.jnetpcap.packet.PcapPacket;
-import org.jnetpcap.packet.PcapPacketHandler;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -80,6 +76,8 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
 
     private AtomicLong flowIdInc = new AtomicLong(0);
 
+    private List<Switch> switches;
+
     public CloudSecProvider(final DataBroker dataBroker,
                             final NotificationService notificationService,
                             final SalFlowService salFlowService,
@@ -89,6 +87,8 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
         this.notificationService = notificationService;
         this.salFlowService = salFlowService;
         this.rpcProviderRegistry = rpcProviderRegistry;
+
+        switches = new ArrayList<>();
     }
 
     private void registerInventoryChangeListener(){
@@ -122,126 +122,29 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
 
     @Override
     public void onDataTreeChanged(Collection<DataTreeModification<Node>> collection) {
-        List<Flow> addFlows = new ArrayList<>();
-        List<InstanceIdentifier<Flow>> addFlowPaths = new ArrayList<>();
-        List<InstanceIdentifier<Node>> deleteFlowPaths = new ArrayList<>();
-
+        // Parcours de l'ensemble des modifications (create/update/delete)
         for(DataTreeModification<Node> mod : collection){
             DataObjectModification<Node> rootNode = mod.getRootNode();
+
             if(rootNode.getModificationType() == DataObjectModification.ModificationType.WRITE){
-                if(rootNode.getDataBefore() == null){
-                    FlowId flowId = new FlowId(Long.toString(flowIdInc.incrementAndGet()));
-                    NodeKey nodeKey = mod.getRootNode().getDataAfter().getKey();
-                    InstanceIdentifier<Flow> flowPath = InstanceIdentifier.create(Nodes.class)
-                            .child(Node.class, nodeKey)
-                            .augmentation(FlowCapableNode.class)
-                            .child(Table.class, new TableKey(new Short("0")))
-                            .child(Flow.class, new FlowKey(flowId));
-                    addFlowPaths.add(flowPath);
-                    addFlows.add(buildAllToCtrlFlow(flowId));
+                if(rootNode.getDataBefore() == null){ // Si le node est créé
+                    Switch newNode = new Switch(mod.getRootPath().getRootIdentifier(), dataBroker);
+                    switches.add(newNode);
                     LOG.info("Node {} created", mod.getRootPath().getRootIdentifier());
                 }
             }else if(rootNode.getModificationType() == DataObjectModification.ModificationType.DELETE){
-                NodeKey nodeKey = mod.getRootNode().getDataBefore().getKey();
-                InstanceIdentifier<Node> node = InstanceIdentifier.create(Nodes.class)
-                        .child(Node.class, nodeKey);
-                deleteFlowPaths.add(node);
+                // Lors de la suppression d'un node, retrait du datastore configuration
+                Switch toDelete = Switch.getSwitchByIid(switches, mod.getRootPath().getRootIdentifier());
+                if(toDelete != null)
+                    toDelete.killMe();
                 LOG.info("Node {} has been deleted", mod.getRootPath().getRootIdentifier());
+            }else{
+                // Cas ne devant pas se présenter
+                LOG.warn("Something changed, but I'm not quite sure what...");
             }
         }
-        deleteFromStore(deleteFlowPaths);
-        pushToStore(addFlows, addFlowPaths);
     }
 
-    private Flow buildAllToCtrlFlow(FlowId flowId){
-        FlowBuilder allToCtrlFlow = new FlowBuilder()
-                .setTableId(new Short("0"))
-                .setFlowName("allPacketsToCtrl")
-                .setId(flowId)
-                .setKey(new FlowKey(flowId));
-
-        MatchBuilder matchBuilder = new MatchBuilder();
-        OutputActionBuilder output = new OutputActionBuilder();
-        output.setMaxLength(Integer.valueOf(0xffff));
-        Uri controllerPort = new Uri(OutputPortValues.CONTROLLER.toString());
-        output.setOutputNodeConnector(controllerPort);
-
-        ActionBuilder ab = new ActionBuilder();
-        ab.setAction(new OutputActionCaseBuilder().setOutputAction(output.build()).build());
-        ab.setOrder(0);
-        ab.setKey(new ActionKey(0));
-
-        List<Action> actionList = new ArrayList<Action>();
-        actionList.add(ab.build());
-
-        ApplyActionsBuilder aab = new ApplyActionsBuilder();
-        aab.setAction(actionList);
-
-        InstructionBuilder ib = new InstructionBuilder();
-        ib.setInstruction(new ApplyActionsCaseBuilder().setApplyActions(aab.build()).build());
-        ib.setOrder(0);
-        ib.setKey(new InstructionKey(0));
-
-        InstructionsBuilder isb = new InstructionsBuilder();
-        List<Instruction> instructions = new ArrayList<Instruction>();
-        instructions.add(ib.build());
-        isb.setInstruction(instructions);
-
-        allToCtrlFlow
-                .setMatch(matchBuilder.build())
-                .setInstructions(isb.build())
-                .setPriority(10000)
-                .setBufferId(OFConstants.OFP_NO_BUFFER)
-                .setHardTimeout(0)
-                .setIdleTimeout(0)
-                .setFlags(new FlowModFlags(false, false, false, false, false));
-
-        return allToCtrlFlow.build();
-    }
-
-    private <T extends DataObject> void pushToStore(List<T> objects, List<InstanceIdentifier<T>> objectsPaths){
-        if(objects.isEmpty()){
-            LOG.info("No objects to add");
-            return;
-        }
-        if(objects.size() != objectsPaths.size()){
-            LOG.error("Inconsistent objects/objectsPath list provided");
-            return;
-        }
-        WriteTransaction transaction = dataBroker.newWriteOnlyTransaction();
-        for(int i = 0; i < objects.size(); i++) {
-            T obj = objects.get(i);
-            InstanceIdentifier<T> objPath = objectsPaths.get(i);
-            transaction.put(LogicalDatastoreType.CONFIGURATION, objPath, obj, true);
-        }
-        CheckedFuture<Void, TransactionCommitFailedException> commitFuture = transaction.submit();
-        try {
-            commitFuture.checkedGet();
-            LOG.warn("Transaction success : {}", commitFuture);
-        } catch (Exception e) {
-            LOG.error("Transaction failed with error {}", e.getMessage());
-            transaction.cancel();
-        }
-    }
-
-    private <T extends DataObject> void deleteFromStore(List<InstanceIdentifier<T>> objects){
-        if(objects.isEmpty()){
-            LOG.info("No objects to delete");
-            return;
-        }
-        WriteTransaction transaction = dataBroker.newWriteOnlyTransaction();
-        for(InstanceIdentifier<T> obj : objects)
-            transaction.delete(LogicalDatastoreType.CONFIGURATION, obj);
-        CheckedFuture<Void, TransactionCommitFailedException> commitFuture = transaction.submit();
-
-        try {
-            commitFuture.checkedGet();
-            LOG.warn("Transaction success : {}", commitFuture);
-        } catch (Exception e) {
-            LOG.error("Transaction failed with error {}", e.getMessage());
-            transaction.cancel();
-        }
-    }
 
     @Override
     public void onPacketReceived(PacketReceived packetReceived) {
@@ -274,15 +177,14 @@ public class CloudSecProvider implements DataTreeChangeListener<Node>, AutoClose
             Optional<org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node> dataObjectOptional = null;
             dataObjectOptional = readOnlyTransaction.read(LogicalDatastoreType.OPERATIONAL, node).get();
             if(dataObjectOptional.isPresent()){
-                org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node dataNode =
-                        dataObjectOptional.get();
+                Node dataNode = dataObjectOptional.get();
                 for(NodeConnector nc : dataNode.getNodeConnector()){
                     if(packetReceived.getIngress() != nc){
                         egress = new NodeConnectorRef(
                                 node.child(NodeConnector.class, nc.getKey()));
                         TransmitPacketInput input = new TransmitPacketInputBuilder()
                                 .setPayload(packetReceived.getPayload())
-                                .setNode(new NodeRef(egress.getValue().firstIdentifierOf(org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node.class)))
+                                .setNode(new NodeRef(egress.getValue().firstIdentifierOf(Node.class)))
                                 .setIngress(packetReceived.getIngress())
                                 .setEgress(egress)
                                 .build();
