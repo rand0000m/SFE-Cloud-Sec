@@ -8,8 +8,10 @@
 
 package com.orange.cloudsec.impl;
 
+import com.google.common.base.Optional;
 import com.google.common.util.concurrent.CheckedFuture;
 import org.opendaylight.controller.md.sal.binding.api.DataBroker;
+import org.opendaylight.controller.md.sal.binding.api.ReadOnlyTransaction;
 import org.opendaylight.controller.md.sal.binding.api.WriteTransaction;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
@@ -36,18 +38,14 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instru
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.Instruction;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.flow.types.rev131026.instruction.list.InstructionKey;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.node.NodeConnector;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node;
-import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.NodeKey;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -57,7 +55,7 @@ public class Switch {
     private final DataBroker dataBroker;
 
     public InstanceIdentifier<Node> nodeId;
-    public NodeConnector[] connectors;
+    public List<NodeConnector> connectors;
     private Long curFlowId = 391839925L;
 
     private static final Logger LOG = LoggerFactory.getLogger(CloudSecProvider.class);
@@ -65,6 +63,8 @@ public class Switch {
     public Switch(InstanceIdentifier<Node> nodeIid, DataBroker dataBroker){
         this.nodeId = nodeIid;
         this.dataBroker = dataBroker;
+
+        connectors = new ArrayList<>();
 
         // Ajout d'une règle AllToCtrl envoyant tous les paquets au contrôleur
         FlowId flowId = new FlowId(curFlowId.toString());
@@ -75,12 +75,33 @@ public class Switch {
                 .child(Flow.class, new FlowKey(flowId));
 
         pushToStore(buildAllToCtrlFlow(flowId), flowIid);
+
+        fetchConnectors();
     }
 
     public void killMe(){
         LOG.warn("Who wish me dead ? :(");
 
         deleteFromStore(nodeId);
+    }
+
+    private void fetchConnectors(){
+        ReadOnlyTransaction readOnlyTransaction = dataBroker.newReadOnlyTransaction();
+        try {
+            Optional<Node> dataObjectOptional = null;
+            dataObjectOptional = readOnlyTransaction.read(LogicalDatastoreType.OPERATIONAL, nodeId).get();
+            if(dataObjectOptional.isPresent()){
+                Node dataNode = dataObjectOptional.get();
+                for(NodeConnector nc : dataNode.getNodeConnector()){
+                    InstanceIdentifier<NodeConnector> a = null;
+                    connectors.add(nc);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     private <T extends DataObject> void pushToStore(T object, InstanceIdentifier<T> objectIid){
@@ -160,7 +181,7 @@ public class Switch {
 
     public static Switch getSwitchByIid(List<Switch> switches, InstanceIdentifier<Node> nodeIid){
         for(Switch sw: switches){
-            if(sw.nodeId == nodeIid)
+            if(sw.nodeId.equals(nodeIid))
                 return sw;
         }
         return null;
