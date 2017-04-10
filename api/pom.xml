@@ -20,4 +20,22 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
   <artifactId>cloud-sec-api</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <packaging>bundle</packaging>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.opendaylight.mdsal.model</groupId>
+      <artifactId>ietf-yang-types</artifactId>
+      <version>2010.09.24.9.2-Boron-SR2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.mdsal.model</groupId>
+      <artifactId>ietf-inet-types</artifactId>
+      <version>2010.09.24.9.2-Boron-SR2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opendaylight.sfc</groupId>
+      <artifactId>sfc-model</artifactId>
+      <version>0.3.2-Boron-SR2</version>
+    </dependency>
+  </dependencies>
 </project>

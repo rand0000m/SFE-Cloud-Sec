@@ -3,7 +3,43 @@ module cloud-sec {
     namespace "urn:opendaylight:params:xml:ns:yang:cloud-sec";
     prefix "cloud-sec";
 
+    import service-function-forwarder { prefix sff; revision-date 2014-07-01; }
+    import ietf-inet-types {prefix inet;}
+
     revision "2015-01-05" {
         description "Initial revision of cloud-sec model";
+    }
+
+    container service-function-registry {
+        list service-function {
+            key "name";
+            leaf address {
+                type inet:ip-address;
+            }
+
+            leaf name {
+                type string;
+            }
+        }
+    }
+
+    container service-function-forwarder-registry {
+        list service-function-forwarder {
+            key "name";
+            leaf address {
+                type inet:ip-address;
+            }
+
+            leaf name {
+                type string;
+            }
+
+            list service-functions {
+                key "sf-name";
+                leaf sf-name {
+                    type string;
+                }
+            }
+        }
     }
 }
