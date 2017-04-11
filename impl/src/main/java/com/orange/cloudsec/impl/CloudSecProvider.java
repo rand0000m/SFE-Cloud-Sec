@@ -15,6 +15,7 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.cloud.se
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.cloud.sec.rev150105.ServiceFunctionRegistry;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.cloud.sec.rev150105.service.function.forwarder.registry.ServiceFunctionForwarder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.cloud.sec.rev150105.service.function.registry.ServiceFunction;
+import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,8 @@ public class CloudSecProvider implements DataTreeChangeListener, AutoCloseable {
     private final SalFlowService salFlowService;
     private final RpcProviderRegistry rpcProviderRegistry;
 
-    private List<Switch> switches;
+    private CloudConfig<ServiceFunction> sfDB;
+    private CloudConfig<ServiceFunctionForwarder> sffDB;
 
     public CloudSecProvider(final DataBroker dataBroker,
                             final NotificationService notificationService,
@@ -45,7 +47,8 @@ public class CloudSecProvider implements DataTreeChangeListener, AutoCloseable {
         this.salFlowService = salFlowService;
         this.rpcProviderRegistry = rpcProviderRegistry;
 
-        switches = new ArrayList<>();
+        sfDB = new CloudConfig<>(dataBroker);
+        sffDB = new CloudConfig<>(dataBroker);
     }
 
     private void registerInventoryChangeListener(){
@@ -81,7 +84,39 @@ public class CloudSecProvider implements DataTreeChangeListener, AutoCloseable {
     }
 
     @Override
-    public void onDataTreeChanged(@Nonnull Collection collection) {
-        LOG.warn("A SERVICE FUNCTION CHANGED !");
+    public void onDataTreeChanged(Collection collection) {
+        /* AJOUT D'UNE SF :
+    "service-function": [
+        {
+            "nsh-aware": "true",
+            "name": "dpi",
+            "type": "service-function-type:dpi",
+            "ip-mgmt-address": "10.0.0.1",
+            "sf-data-plane-locator": [
+                {
+                    "name": "1",
+                    "service-function-forwarder": "SFF1",
+                    "ip": "10.0.0.2",
+                    "port": "6633",
+                    "transport": "service-locator:vxlan-gpe"
+                }
+            ]
+        }
+    ]
+         */
+        for(Object a: collection){
+            if(a instanceof DataTreeModification) {
+                DataTreeModification b = (DataTreeModification) a;
+                DataObject dataObj = b.getRootNode().getDataAfter();
+                if(b.getRootPath().getRootIdentifier().getTargetType() == ServiceFunctionForwarder.class) {
+                    LOG.warn("Modification sur une SFF !");
+                    sffDB.dataTreeChanged(b);
+                }
+                if(b.getRootPath().getRootIdentifier().getTargetType() == ServiceFunction.class) {
+                    LOG.warn("Modification sur une SF !");
+                    sfDB.dataTreeChanged(b);
+                }
+            }
+        }
     }
 }
