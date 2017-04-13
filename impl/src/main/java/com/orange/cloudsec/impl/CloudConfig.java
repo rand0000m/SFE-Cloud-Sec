@@ -12,9 +12,8 @@ import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sf.rev14070
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sf.rev140701.service.functions.ServiceFunction;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sf.rev140701.service.functions.ServiceFunctionBuilder;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sf.rev140701.service.functions.ServiceFunctionKey;
-import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.ovs.rev140701.ServiceFunctionForwarderOvsData;
-import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.ovs.rev140701.SffOvsLocatorOptionsAugmentation;
-import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.ovs.rev140701.SffOvsLocatorOptionsAugmentationBuilder;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.ovs.rev140701.*;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.ovs.rev140701.bridge.OvsBridgeBuilder;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.ovs.rev140701.options.OvsOptionsBuilder;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.ServiceFunctionForwarders;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.service.function.forwarder.base.SffDataPlaneLocator;
@@ -24,6 +23,8 @@ import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev1407
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.service.function.forwarders.ServiceFunctionForwarderBuilder;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.service.function.forwarders.ServiceFunctionForwarderKey;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.service.function.forwarders.service.function.forwarder.ServiceFunctionDictionary;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.service.function.forwarders.service.function.forwarder.ServiceFunctionDictionaryBuilder;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.service.function.forwarders.service.function.forwarder.service.function.dictionary.SffSfDataPlaneLocatorBuilder;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sl.rev140701.SlTransportType;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sl.rev140701.VxlanGpe;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sl.rev140701.data.plane.locator.locator.type.IpBuilder;
@@ -64,16 +65,17 @@ public class CloudConfig<T extends DataObject> {
         return obj;
     }
 
-    public T update(T obj, InstanceIdentifier<T> iid){
-        int objId = data.indexOf(obj);
-        //pushToStore(obj, iid, LogicalDatastoreType.CONFIGURATION);
+    public T update(T objBefore, T objAfter, InstanceIdentifier iid, DataObject sfcObj){
+        int objId = data.indexOf(objBefore);
+        //deleteFromStore(iid, LogicalDatastoreType.CONFIGURATION);
+        pushToStore(sfcObj, iid, LogicalDatastoreType.CONFIGURATION);
 
-        data.set(objId, obj);
-        return obj;
+        data.set(objId, objAfter);
+        return objAfter;
     }
 
     public boolean delete(T obj, InstanceIdentifier iid){
-        //deleteFromStore(iid, LogicalDatastoreType.CONFIGURATION);
+        deleteFromStore(iid, LogicalDatastoreType.CONFIGURATION);
         data.remove(obj);
         return false;
     }
@@ -104,18 +106,18 @@ public class CloudConfig<T extends DataObject> {
         Class targetType = mod.getRootPath().getRootIdentifier().getTargetType();
 
         DataObject toSFC = null;
-        if(dataBefore == null)
+        if(dataAfter != null)
             toSFC = convertToSFC(dataAfter, iid, targetType);
         switch (mod.getRootNode().getModificationType()) {
             case WRITE:
                 if(dataBefore == null){
                     this.create(dataAfter, getIid(targetType, dataAfter), toSFC);
                 }else{
-                    this.update(dataAfter, iid);
+                    this.update(dataBefore, dataAfter, getIid(targetType, dataAfter), toSFC);
                 }
                 break;
             case DELETE:
-                this.delete(dataBefore, iid);
+                this.delete(dataBefore, getIid(targetType, dataAfter));
                 break;
             case SUBTREE_MODIFIED:
                 break;
@@ -207,6 +209,7 @@ public class CloudConfig<T extends DataObject> {
                                     .setPort(new PortNumber(6633))
                                     .build()
                     )
+                    .setServiceFunctionForwarder(new SffName(""))
                     .setTransport(VxlanGpe.class);
             ArrayList<SfDataPlaneLocator> sfDPList = new ArrayList();
             sfDPList.add(sfDPBuilder.build());
@@ -232,6 +235,9 @@ public class CloudConfig<T extends DataObject> {
                             cloud.sec.rev150105.service.function.forwarder.registry.ServiceFunctionForwarder) obj;
             SffOvsLocatorOptionsAugmentationBuilder ovsOptionsAugBuilder =
                     new SffOvsLocatorOptionsAugmentationBuilder();
+            SffOvsBridgeAugmentationBuilder ovsBridgeAugmentationBuilder =
+                    new SffOvsBridgeAugmentationBuilder();
+            OvsBridgeBuilder ovsBridgeBuilder = new OvsBridgeBuilder();
             IpBuilder ipBuilder = new IpBuilder();
             OvsOptionsBuilder ovsOptionsBuilder = new OvsOptionsBuilder();
             DataPlaneLocatorBuilder dpBuilder = new DataPlaneLocatorBuilder();
@@ -259,12 +265,27 @@ public class CloudConfig<T extends DataObject> {
 
             dpList.add(sffDPBuilder.build());
 
+            ServiceFunctionDictionaryBuilder sfdBuilder = new ServiceFunctionDictionaryBuilder();
+            SffSfDataPlaneLocatorBuilder sffSfDplBuilder = new SffSfDataPlaneLocatorBuilder();
+            for(org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.cloud.sec.rev150105.service.function
+                    .forwarder.registry.service.function.forwarder.ServiceFunctions sf: cloudSFF.getServiceFunctions()){
+                sffSfDplBuilder.setSfDplName(new SfDataPlaneLocatorName(sf.getSfName()))
+                        .setSffDplName(new SffDataPlaneLocatorName(cloudSFF.getName()));
+                sfdBuilder.setName(new SfName(sf.getSfName()))
+                        .setSffSfDataPlaneLocator(sffSfDplBuilder.build());
+                sfList.add(sfdBuilder.build());
+            }
+
+            ovsBridgeBuilder.setBridgeName(cloudSFF.getOvsBridge());
+            ovsBridgeAugmentationBuilder.setOvsBridge(ovsBridgeBuilder.build());
+
             // J'avais mis l'IpMgmtAddress en pensant qu'il remplaçait le Service Node (qui n'est pas initialisé)
             // J'ai retiré l'IpMgmtAddress car il n'est pas supposé être utilisé avec les SFF
             builder.setName(new SffName(cloudSFF.getName()))
                     //.setIpMgmtAddress(cloudSFF.getAddress())
                     .setSffDataPlaneLocator(dpList)
-                    .setServiceFunctionDictionary(sfList);
+                    .setServiceFunctionDictionary(sfList)
+                    .addAugmentation(SffOvsBridgeAugmentation.class, ovsBridgeAugmentationBuilder.build());
             ServiceFunctionForwarder output = builder.build();
             //LOG.warn("Looks like your Service Function Forwarder : {}", output);
             return output;

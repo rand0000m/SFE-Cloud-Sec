@@ -34,6 +34,10 @@ module cloud-sec {
                 type string;
             }
 
+            leaf ovs-bridge {
+                type string;
+            }
+
             list service-functions {
                 key "sf-name";
                 leaf sf-name {
