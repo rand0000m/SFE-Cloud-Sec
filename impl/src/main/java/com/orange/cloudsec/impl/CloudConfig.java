@@ -117,7 +117,7 @@ public class CloudConfig<T extends DataObject> {
                 }
                 break;
             case DELETE:
-                this.delete(dataBefore, getIid(targetType, dataAfter));
+                this.delete(dataBefore, getIid(targetType, dataBefore));
                 break;
             case SUBTREE_MODIFIED:
                 break;
