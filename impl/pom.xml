@@ -72,9 +72,9 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
         <version>RELEASE</version>
     </dependency>
     <dependency>
-      <groupId>jnetpcap</groupId>
-      <artifactId>jnetpcap</artifactId>
-      <version>1.4.r1425-1f</version>
+      <groupId>org.opendaylight.groupbasedpolicy</groupId>
+      <artifactId>groupbasedpolicy</artifactId>
+      <version>0.4.2-Boron-SR2</version>
     </dependency>
   </dependencies>
 </project>

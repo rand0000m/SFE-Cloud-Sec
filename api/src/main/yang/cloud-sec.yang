@@ -46,4 +46,55 @@ module cloud-sec {
             }
         }
     }
+
+    container networks {
+        list network {
+            key "addresses";
+
+            leaf addresses {
+                type inet:ip-prefix;
+            }
+        }
+    }
+
+    container rules {
+        list rule {
+            leaf action {
+                type string;
+            }
+
+            leaf name {
+                type string;
+            }
+
+            list actions {
+                leaf name {
+                    type string;
+                }
+
+                leaf "value" {
+                    type string;
+                }
+            }
+
+            list matches {
+                leaf classifier {
+                    type string;
+                }
+
+                leaf name {
+                    type string;
+                }
+                list match {
+                    leaf name {
+                        type string;
+                    }
+
+                    leaf "value" {
+                        type string;
+                    }
+                }
+            }
+        }
+    }
 }
