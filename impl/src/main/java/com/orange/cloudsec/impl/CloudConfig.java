@@ -5,6 +5,8 @@ import com.google.common.util.concurrent.CheckedFuture;
 import org.opendaylight.controller.md.sal.binding.api.*;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
+import org.opendaylight.groupbasedpolicy.endpoint.EndpointRpcRegistry;
+import org.opendaylight.groupbasedpolicy.renderer.ofoverlay.endpoint.OfOverlayAug;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.common.rev151017.*;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sf.rev140701.ServiceFunctions;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sf.rev140701.service.function.base.SfDataPlaneLocator;
@@ -25,15 +27,23 @@ import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev1407
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.service.function.forwarders.service.function.forwarder.ServiceFunctionDictionary;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.service.function.forwarders.service.function.forwarder.ServiceFunctionDictionaryBuilder;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.service.function.forwarders.service.function.forwarder.service.function.dictionary.SffSfDataPlaneLocatorBuilder;
-import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sl.rev140701.SlTransportType;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sl.rev140701.VxlanGpe;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sl.rev140701.data.plane.locator.locator.type.IpBuilder;
-import org.opendaylight.yang.gen.v1.urn.ericsson.params.xml.ns.yang.sfc.sf.map.rev140701.service.function.mapping.SlTransportsBuilder;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.PortNumber;
+import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.common.rev140421.*;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.common.rev140421.TenantId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.endpoint.rev140421.RegisterEndpointInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.endpoint.rev140421.endpoint.fields.L3Address;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.endpoint.rev140421.endpoint.fields.L3AddressBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.ofoverlay.rev140528.OfOverlayContextInput;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.ofoverlay.rev140528.OfOverlayContextInputBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.ofoverlay.rev140528.OfOverlayNodeConfig;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.ofoverlay.rev140528.OfOverlayNodeConfigBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.ofoverlay.rev140528.nodes.node.Tunnel;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.ofoverlay.rev140528.nodes.node.TunnelBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.policy.rev140421.HasDirection;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.policy.rev140421.Tenants;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.policy.rev140421.has.action.refs.ActionRef;
@@ -63,35 +73,92 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.policy.rev
 import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.policy.rev140421.tenants.tenant.policy.subject.feature.instances.ActionInstanceBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.policy.rev140421.tenants.tenant.policy.subject.feature.instances.ClassifierInstance;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.policy.rev140421.tenants.tenant.policy.subject.feature.instances.ClassifierInstanceBuilder;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeConnectorId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.*;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.cloud.sec.rev150105.networks.Network;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.overlay.rev150105.TunnelTypeVxlan;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.overlay.rev150105.TunnelTypeVxlanGpe;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by mrousse on 11/04/17.
  */
 public class CloudConfig<T extends DataObject> {
     private static final Logger LOG = LoggerFactory.getLogger(CloudSecProvider.class);
+    private static int configured = 0;
 
     protected ArrayList<T> data;
     protected DataBroker dataBroker;
     protected ArrayList<Network> netList;
-
+    protected EndpointRpcRegistry epRR;
     public CloudConfig(){
     }
 
     public CloudConfig(DataBroker dataBroker) {
         this.dataBroker = dataBroker;
+        this.epRR = new EndpointRpcRegistry(this.dataBroker);
 
         this.data = new ArrayList<T>();
         this.netList = new ArrayList<>();
 
-        LOG.warn("Guess whos back ?");
-        this.tenantCreate();
+        configured++;
+
+        if(configured == 1) {
+            this.tenantCreate();
+            
+            this.tunnelCreate("192.168.50.75", "openflow:6");
+            this.tunnelCreate("192.168.50.70", "openflow:1");
+
+            this.endpointCreate("webservers",
+                    "subnet-10.0.36.0/24",
+                    "00:00:00:00:36:02",
+                    "10.0.36.2",
+                    "vethl-h36-2");
+            this.endpointCreate("clients",
+                    "subnet-10.0.35.0/24",
+                    "00:00:00:00:35:02",
+                    "10.0.35.2",
+                    "vethl-h35-2");
+            this.endpointCreate("clients",
+                    "subnet-10.0.35.0/24",
+                    "00:00:00:00:35:03",
+                    "10.0.35.3",
+                    "vethl-h35-3");
+            this.endpointCreate("webservers",
+                    "subnet-10.0.36.0/24",
+                    "00:00:00:00:36:03",
+                    "10.0.36.3",
+                    "vethl-h36-3");
+            this.endpointCreate("clients",
+                    "subnet-10.0.35.0/24",
+                    "00:00:00:00:35:04",
+                    "10.0.35.4",
+                    "vethl-h35-4");
+            this.endpointCreate("webservers",
+                    "subnet-10.0.36.0/24",
+                    "00:00:00:00:36:04",
+                    "10.0.36.4",
+                    "vethl-h36-4");
+            this.endpointCreate("clients",
+                    "subnet-10.0.35.0/24",
+                    "00:00:00:00:35:05",
+                    "10.0.35.5",
+                    "vethl-h35-5");
+            this.endpointCreate("webservers",
+                    "subnet-10.0.36.0/24",
+                    "00:00:00:00:36:05",
+                    "10.0.36.5",
+                    "vethl-h36-5");
+        }
     }
 
     public T create(T obj, InstanceIdentifier iid, DataObject sfcObj){
@@ -118,17 +185,18 @@ public class CloudConfig<T extends DataObject> {
         return false;
     }
 
-    public DataObject read(InstanceIdentifier<T> iid){
+    public <U extends DataObject> DataObject read(InstanceIdentifier<U> iid){
         ReadOnlyTransaction readOnlyTransaction = dataBroker.newReadOnlyTransaction();
         try {
-            Optional<T> dataObjectOptional = null;
+            Optional<U> dataObjectOptional = null;
             dataObjectOptional = readOnlyTransaction.read(LogicalDatastoreType.CONFIGURATION, iid).get();
             if(dataObjectOptional.isPresent()){
-                T dataNode = dataObjectOptional.get();
-                for(DataObject obj: data){
+                U dataNode = dataObjectOptional.get();
+                return dataNode;
+                /*for(DataObject obj: data){
                     if(obj.equals(dataNode))
                         return obj;
-                }
+                }*/
             }
 
         } catch (Exception e) {
@@ -282,6 +350,9 @@ public class CloudConfig<T extends DataObject> {
             ArrayList<SffDataPlaneLocator> dpList = new ArrayList<>();
             ArrayList<ServiceFunctionDictionary> sfList = new ArrayList<>();
 
+            // Mise à jour de la SF
+            InstanceIdentifier<ServiceFunction> sfIid = null;
+
             ipBuilder.setIp(new IpAddress(cloudSFF.getAddress()))
                     .setPort(new PortNumber(6633));
             dpBuilder.setLocatorType(ipBuilder.build())
@@ -312,6 +383,30 @@ public class CloudConfig<T extends DataObject> {
                 sfdBuilder.setName(new SfName(sf.getSfName()))
                         .setSffSfDataPlaneLocator(sffSfDplBuilder.build());
                 sfList.add(sfdBuilder.build());
+
+                // Mise à jour de la SF
+                /*sfIid = InstanceIdentifier.create(ServiceFunctions.class)
+                    .child(ServiceFunction.class, new ServiceFunctionKey(new SfName(sf.getSfName())));*/
+
+                SfName sfName = new SfName(sf.getSfName());
+                sfIid = InstanceIdentifier.create(ServiceFunctions.class).child(ServiceFunction.class, new ServiceFunctionKey(sfName));
+
+                // Attention, risque de "Race condition" : si jamais la SF n'a pas été créé, bug à l'ajout de la SFF dans SFC
+                DataObject dbSF = read(sfIid);
+                ServiceFunctionBuilder sfBuilder = new ServiceFunctionBuilder();
+                if(dbSF != null)
+                    sfBuilder.fieldsFrom(dbSF);
+
+                ArrayList<SfDataPlaneLocator> sfDataPlaneLocators = new ArrayList(sfBuilder.getSfDataPlaneLocator());
+                for(int i = 0; i < sfDataPlaneLocators.size(); i++){
+                    SfDataPlaneLocator sfDataPlaneLocator = sfDataPlaneLocators.get(i);
+                    SfDataPlaneLocatorBuilder sfDataPlaneLocatorBuilder =
+                            new SfDataPlaneLocatorBuilder(sfDataPlaneLocator);
+                    sfDataPlaneLocatorBuilder.setServiceFunctionForwarder(new SffName(cloudSFF.getName()));
+                    sfDataPlaneLocators.set(i, sfDataPlaneLocatorBuilder.build());
+                }
+                sfBuilder.setSfDataPlaneLocator(sfDataPlaneLocators);
+                this.pushToStore(sfBuilder.build(), sfIid, LogicalDatastoreType.CONFIGURATION);
             }
 
             ovsBridgeBuilder.setBridgeName(cloudSFF.getOvsBridge());
@@ -558,5 +653,63 @@ public class CloudConfig<T extends DataObject> {
                 .setPolicy(policyBuilder.build());
 
         pushToStore(tenantBuilder.build(), tenantIid, LogicalDatastoreType.CONFIGURATION);
+    }
+
+    public void endpointCreate(String endpointGroup,
+                                String networkContainment,
+                                String macAddr,
+                                String l3Addr,
+                                String portName){
+        RegisterEndpointInputBuilder registerEndpointInputBuilder = new RegisterEndpointInputBuilder();
+        L3AddressBuilder l3AddressBuilder = new L3AddressBuilder();
+        ArrayList<L3Address> l3Addresses = new ArrayList<>();
+        OfOverlayContextInputBuilder ofOverlayContextInputBuilder = new OfOverlayContextInputBuilder();
+
+        ofOverlayContextInputBuilder.setPortName(new Name(portName));
+
+        l3AddressBuilder.setIpAddress(new IpAddress(l3Addr.toCharArray()))
+                .setL3Context(new L3ContextId("l3-context-vrf"));
+        l3Addresses.add(l3AddressBuilder.build());
+
+        registerEndpointInputBuilder.setEndpointGroup(new EndpointGroupId(endpointGroup))
+                .setNetworkContainment(new NetworkDomainId(networkContainment))
+                .setL2Context(new L2BridgeDomainId("bridge-domain"))
+                .setMacAddress(new MacAddress(macAddr))
+                .setL3Address(l3Addresses)
+                .addAugmentation(OfOverlayContextInput.class, ofOverlayContextInputBuilder.build())
+                .setTenant(new TenantId("cloud-sec-tenant"));
+
+        // PAS DE PORT-NAME DE TROUVÉ DANS LES YANG OU LE PROJET GROUPBASEDPOLICY
+
+        epRR.registerEndpoint(registerEndpointInputBuilder.build());
+    }
+
+    public void tunnelCreate(String ipAddr,
+                             String tunId){
+        NodeBuilder nodeBuilder = new NodeBuilder();
+        OfOverlayNodeConfigBuilder ofOverlayNodeConfigBuilder = new OfOverlayNodeConfigBuilder();
+        TunnelBuilder tunnelBuilder = new TunnelBuilder();
+        ArrayList<Tunnel> tunnels = new ArrayList<>();
+        InstanceIdentifier<org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node> nodeIid =
+                InstanceIdentifier.create(Nodes.class)
+                .child(Node.class, new NodeKey(new NodeId(tunId)));
+
+        tunnelBuilder.setIp(new IpAddress(ipAddr.toCharArray()))
+                .setTunnelType(TunnelTypeVxlanGpe.class)
+                .setNodeConnectorId(new NodeConnectorId(tunId.concat(":1")))
+                .setPort(new PortNumber(6633));
+        tunnels.add(tunnelBuilder.build());
+
+        tunnelBuilder.setIp(new IpAddress(ipAddr.toCharArray()))
+                .setTunnelType(TunnelTypeVxlan.class)
+                .setNodeConnectorId(new NodeConnectorId(tunId.concat(":2")))
+                .setPort(new PortNumber(4789));
+        tunnels.add(tunnelBuilder.build());
+
+        ofOverlayNodeConfigBuilder.setTunnel(tunnels);
+        nodeBuilder.addAugmentation(OfOverlayNodeConfig.class, ofOverlayNodeConfigBuilder.build())
+                .setId(new NodeId(tunId));
+
+        pushToStore(nodeBuilder.build(), nodeIid, LogicalDatastoreType.CONFIGURATION);
     }
 }
