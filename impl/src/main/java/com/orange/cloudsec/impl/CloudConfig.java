@@ -441,11 +441,8 @@ public class CloudConfig<T extends DataObject> implements CloudSecService {
         ArrayList<Subject> subjects = new ArrayList<>();
         ArrayList<SubjectName> subjectRefs = new ArrayList<>();
         RuleBuilder ruleBuilder = new RuleBuilder();
-        ArrayList<Rule> rules = new ArrayList<>();
         ClassifierRefBuilder classifierRefBuilder = new ClassifierRefBuilder();
-        ArrayList<ClassifierRef> classifierRefs = new ArrayList<>();
         ActionRefBuilder actionRefBuilder = new ActionRefBuilder();
-        ArrayList<ActionRef> actionRefs = new ArrayList<>();
         ClauseBuilder clauseBuilder = new ClauseBuilder();
         ArrayList<Clause> clauses = new ArrayList<>();
 
@@ -547,64 +544,67 @@ public class CloudConfig<T extends DataObject> implements CloudSecService {
         subjectFeatureInstancesBuilder.setActionInstance(actionInstances)
                 .setClassifierInstance(classifierInstances);
 
+        ArrayList<ClassifierRef> classifierRefsIcmp = new ArrayList<>();
+        ArrayList<Rule> rulesIcmp = new ArrayList<>();
+        ArrayList<ActionRef> actionRefsIcmp = new ArrayList<>();
         classifierRefBuilder.setName(new ClassifierName("icmp-in"))
                 .setInstanceName(new ClassifierName("icmp"))
                 .setDirection(HasDirection.Direction.In);
-        classifierRefs.add(classifierRefBuilder.build());
-        classifierRefBuilder.setName(new ClassifierName("icmp-in"))
+        classifierRefsIcmp.add(classifierRefBuilder.build());
+        classifierRefBuilder.setName(new ClassifierName("icmp-out"))
                 .setInstanceName(new ClassifierName("icmp"))
                 .setDirection(HasDirection.Direction.In);
-        classifierRefs.add(classifierRefBuilder.build());
+        classifierRefsIcmp.add(classifierRefBuilder.build());
 
         actionRefBuilder.setName(new ActionName("allow1"))
                 .setOrder(0);
-        actionRefs.add(actionRefBuilder.build());
+        actionRefsIcmp.add(actionRefBuilder.build());
 
         ruleBuilder.setName(new RuleName("allow-icmp-rule"))
                 .setOrder(0)
-                .setClassifierRef(classifierRefs)
-                .setActionRef(actionRefs);
-        rules.add(ruleBuilder.build());
+                .setClassifierRef(classifierRefsIcmp)
+                .setActionRef(actionRefsIcmp);
+        rulesIcmp.add(ruleBuilder.build());
 
         subjectBuilder.setName(new SubjectName("icmp-subject"))
-                .setRule(rules);
+                .setRule(rulesIcmp);
         subjects.add(subjectBuilder.build());
 
-        classifierRefs.clear();
+        ArrayList<ClassifierRef> classifierRefsHttpIn = new ArrayList<>();
+        ArrayList<ClassifierRef> classifierRefsHttpOut = new ArrayList<>();
+        ArrayList<Rule> rulesHttp = new ArrayList<>();
+        ArrayList<ActionRef> actionRefsHttpIn = new ArrayList<>();
+        ArrayList<ActionRef> actionRefsHttpOut = new ArrayList<>();
         classifierRefBuilder.setName(new ClassifierName("http-dest"))
                 .setInstanceName(new ClassifierName("http-dest"))
                 .setDirection(HasDirection.Direction.In);
-        classifierRefs.add(classifierRefBuilder.build());
+        classifierRefsHttpIn.add(classifierRefBuilder.build());
 
-        actionRefs.clear();
         actionRefBuilder.setName(new ActionName("chain1"))
                 .setOrder(0);
-        actionRefs.add(actionRefBuilder.build());
+        actionRefsHttpIn.add(actionRefBuilder.build());
 
-        rules.clear();
         ruleBuilder.setName(new RuleName("http-chain-rule-in"))
-                .setActionRef(actionRefs)
-                .setClassifierRef(classifierRefs);
-        rules.add(ruleBuilder.build());
+                .setActionRef(actionRefsHttpIn)
+                .setClassifierRef(classifierRefsHttpIn);
+        rulesHttp.add(ruleBuilder.build());
 
-        classifierRefs.clear();
-        actionRefs.clear();
         classifierRefBuilder.setName(new ClassifierName("http-src"))
                 .setInstanceName(new ClassifierName("http-src"))
                 .setDirection(HasDirection.Direction.Out);
-        classifierRefs.add(classifierRefBuilder.build());
+        classifierRefsHttpOut.add(classifierRefBuilder.build());
 
         actionRefBuilder.setName(new ActionName("chain1"))
                 .setOrder(0);
-        actionRefs.add(actionRefBuilder.build());
+        actionRefsHttpOut.add(actionRefBuilder.build());
 
         ruleBuilder.setName(new RuleName("http-chain-rule-out"))
-                .setClassifierRef(classifierRefs)
-                .setActionRef(actionRefs);
-        rules.add(ruleBuilder.build());
+                .setClassifierRef(classifierRefsHttpOut)
+                .setActionRef(actionRefsHttpOut);
+        rulesHttp.add(ruleBuilder.build());
 
         subjectBuilder.setName(new SubjectName("http-subject"))
-                .setRule(rules);
+                .setRule(rulesHttp);
         subjects.add(subjectBuilder.build());
 
         subjectRefs.add(new SubjectName("icmp-subject"));
