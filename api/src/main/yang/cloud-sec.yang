@@ -97,4 +97,56 @@ module cloud-sec {
             }
         }
     }
+
+    rpc create-tenant {
+        input {
+            leaf unused {
+                type string;
+            }
+        }
+        output {
+            leaf unused {
+                type string;
+            }
+        }
+    }
+
+    rpc create-endpoints {
+        input {
+            leaf unused {
+                type string;
+            }
+        }
+        output {
+            leaf unused {
+                type string;
+            }
+        }
+    }
+
+    rpc create-function-path {
+        input {
+            leaf unused {
+                type string;
+            }
+        }
+        output {
+            leaf unused {
+                type string;
+            }
+        }
+    }
+
+    rpc create-tunnel {
+        input {
+            leaf unused {
+                type string;
+            }
+        }
+        output {
+            leaf unused {
+                type string;
+            }
+        }
+    }
 }

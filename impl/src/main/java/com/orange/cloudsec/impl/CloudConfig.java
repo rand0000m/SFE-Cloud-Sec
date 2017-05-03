@@ -6,7 +6,6 @@ import org.opendaylight.controller.md.sal.binding.api.*;
 import org.opendaylight.controller.md.sal.common.api.data.LogicalDatastoreType;
 import org.opendaylight.controller.md.sal.common.api.data.TransactionCommitFailedException;
 import org.opendaylight.groupbasedpolicy.endpoint.EndpointRpcRegistry;
-import org.opendaylight.groupbasedpolicy.renderer.ofoverlay.endpoint.OfOverlayAug;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.common.rev151017.*;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sf.rev140701.ServiceFunctions;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sf.rev140701.service.function.base.SfDataPlaneLocator;
@@ -14,6 +13,12 @@ import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sf.rev14070
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sf.rev140701.service.functions.ServiceFunction;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sf.rev140701.service.functions.ServiceFunctionBuilder;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sf.rev140701.service.functions.ServiceFunctionKey;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sfc.rev140701.ServiceFunctionChains;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sfc.rev140701.service.function.chain.grouping.ServiceFunctionChain;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sfc.rev140701.service.function.chain.grouping.ServiceFunctionChainBuilder;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sfc.rev140701.service.function.chain.grouping.ServiceFunctionChainKey;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sfc.rev140701.service.function.chain.grouping.service.function.chain.SfcServiceFunction;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sfc.rev140701.service.function.chain.grouping.service.function.chain.SfcServiceFunctionBuilder;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.ovs.rev140701.*;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.ovs.rev140701.bridge.OvsBridgeBuilder;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.ovs.rev140701.options.OvsOptionsBuilder;
@@ -27,6 +32,14 @@ import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev1407
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.service.function.forwarders.service.function.forwarder.ServiceFunctionDictionary;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.service.function.forwarders.service.function.forwarder.ServiceFunctionDictionaryBuilder;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sff.rev140701.service.function.forwarders.service.function.forwarder.service.function.dictionary.SffSfDataPlaneLocatorBuilder;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sfp.rev140701.ServiceFunctionPaths;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sfp.rev140701.service.function.paths.ServiceFunctionPath;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sfp.rev140701.service.function.paths.ServiceFunctionPathBuilder;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sfp.rev140701.service.function.paths.ServiceFunctionPathKey;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sft.rev140701.ServiceFunctionTypes;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sft.rev140701.service.function.types.ServiceFunctionType;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sft.rev140701.service.function.types.ServiceFunctionTypeBuilder;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sft.rev140701.service.function.types.ServiceFunctionTypeKey;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sl.rev140701.VxlanGpe;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sl.rev140701.data.plane.locator.locator.type.IpBuilder;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
@@ -78,23 +91,25 @@ import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.NodeId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.Nodes;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.*;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.inventory.rev130819.nodes.Node;
+import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.cloud.sec.rev150105.*;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.cloud.sec.rev150105.networks.Network;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.overlay.rev150105.TunnelTypeVxlan;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.overlay.rev150105.TunnelTypeVxlanGpe;
 import org.opendaylight.yangtools.yang.binding.DataObject;
 import org.opendaylight.yangtools.yang.binding.InstanceIdentifier;
+import org.opendaylight.yangtools.yang.common.RpcResult;
+import org.opendaylight.yangtools.yang.common.RpcResultBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Future;
 
 /**
  * Created by mrousse on 11/04/17.
  */
-public class CloudConfig<T extends DataObject> {
+public class CloudConfig<T extends DataObject> implements CloudSecService {
     private static final Logger LOG = LoggerFactory.getLogger(CloudSecProvider.class);
-    private static int configured = 0;
 
     protected ArrayList<T> data;
     protected DataBroker dataBroker;
@@ -109,56 +124,6 @@ public class CloudConfig<T extends DataObject> {
 
         this.data = new ArrayList<T>();
         this.netList = new ArrayList<>();
-
-        configured++;
-
-        if(configured == 1) {
-            this.tenantCreate();
-            
-            this.tunnelCreate("192.168.50.75", "openflow:6");
-            this.tunnelCreate("192.168.50.70", "openflow:1");
-
-            this.endpointCreate("webservers",
-                    "subnet-10.0.36.0/24",
-                    "00:00:00:00:36:02",
-                    "10.0.36.2",
-                    "vethl-h36-2");
-            this.endpointCreate("clients",
-                    "subnet-10.0.35.0/24",
-                    "00:00:00:00:35:02",
-                    "10.0.35.2",
-                    "vethl-h35-2");
-            this.endpointCreate("clients",
-                    "subnet-10.0.35.0/24",
-                    "00:00:00:00:35:03",
-                    "10.0.35.3",
-                    "vethl-h35-3");
-            this.endpointCreate("webservers",
-                    "subnet-10.0.36.0/24",
-                    "00:00:00:00:36:03",
-                    "10.0.36.3",
-                    "vethl-h36-3");
-            this.endpointCreate("clients",
-                    "subnet-10.0.35.0/24",
-                    "00:00:00:00:35:04",
-                    "10.0.35.4",
-                    "vethl-h35-4");
-            this.endpointCreate("webservers",
-                    "subnet-10.0.36.0/24",
-                    "00:00:00:00:36:04",
-                    "10.0.36.4",
-                    "vethl-h36-4");
-            this.endpointCreate("clients",
-                    "subnet-10.0.35.0/24",
-                    "00:00:00:00:35:05",
-                    "10.0.35.5",
-                    "vethl-h35-5");
-            this.endpointCreate("webservers",
-                    "subnet-10.0.36.0/24",
-                    "00:00:00:00:36:05",
-                    "10.0.36.5",
-                    "vethl-h36-5");
-        }
     }
 
     public T create(T obj, InstanceIdentifier iid, DataObject sfcObj){
@@ -323,10 +288,20 @@ public class CloudConfig<T extends DataObject> {
             // Création du SF pour SFC
             builder.setName(new SfName(cloudSF.getName()))
                     .setNshAware(true)
-                    .setType(new SftTypeName("service-function-type:dpi"))
+                    .setType(new SftTypeName("service-function-type:".concat(cloudSF.getName())))
                     .setIpMgmtAddress(new IpAddress(cloudSF.getAddress()))
                     .setSfDataPlaneLocator(sfDPList);
             ServiceFunction output = builder.build();
+
+            ServiceFunctionTypeBuilder serviceFunctionTypeBuilder = new ServiceFunctionTypeBuilder();
+            serviceFunctionTypeBuilder.setNshAware(true)
+                    .setBidirectionality(true)
+                    .setSymmetry(true)
+                    .setType(new SftTypeName(cloudSF.getName()));
+            pushToStore(serviceFunctionTypeBuilder.build(), InstanceIdentifier.create(ServiceFunctionTypes.class)
+                    .child(ServiceFunctionType.class, new ServiceFunctionTypeKey(
+                            new SftTypeName(cloudSF.getName()))),
+                    LogicalDatastoreType.CONFIGURATION);
 
             //LOG.warn("Looks like your Service Function : {}", output);
             return output;
@@ -456,7 +431,7 @@ public class CloudConfig<T extends DataObject> {
         ClassifierInstanceBuilder classifierInstanceBuilder = new ClassifierInstanceBuilder();
         ArrayList<ClassifierInstance> classifierInstances = new ArrayList<>();
         ParameterValueBuilder parameterValueBuilder = new ParameterValueBuilder();
-        ArrayList<ParameterValue> parameterValues = new ArrayList<>();
+        ArrayList<ParameterValue> parameterValuesActionChain = new ArrayList<>();
         ActionInstanceBuilder actionInstanceBuilder = new ActionInstanceBuilder();
         ArrayList<ActionInstance> actionInstances = new ArrayList<>();
         ContractBuilder contractBuilder = new ContractBuilder();
@@ -528,43 +503,45 @@ public class CloudConfig<T extends DataObject> {
 
         parameterValueBuilder.setName(new ParameterName("proto"))
                 .setIntValue(new Long(1));
-        parameterValues.add(parameterValueBuilder.build());
+        ArrayList<ParameterValue> parameterValuesIcmp = new ArrayList<>();
+        parameterValuesIcmp.add(parameterValueBuilder.build());
         classifierInstanceBuilder.setClassifierDefinitionId(new ClassifierDefinitionId("Classifier-IP-Protocol"))
                 .setName(new ClassifierName("icmp"))
-                .setParameterValue(parameterValues);
+                .setParameterValue(parameterValuesIcmp);
         classifierInstances.add(classifierInstanceBuilder.build());
         parameterValueBuilder.setName(new ParameterName("proto"))
                 .setIntValue(new Long(6));
-        parameterValues.add(parameterValueBuilder.build());
+        ArrayList<ParameterValue> parameterValuesHttpDst = new ArrayList<>();
+        parameterValuesHttpDst.add(parameterValueBuilder.build());
         parameterValueBuilder.setName(new ParameterName("destport"))
                 .setIntValue(new Long(80));
-        parameterValues.add(parameterValueBuilder.build());
+        parameterValuesHttpDst.add(parameterValueBuilder.build());
         classifierInstanceBuilder.setClassifierDefinitionId(new ClassifierDefinitionId("Classifier-L4"))
                 .setName(new ClassifierName("http-dest"))
-                .setParameterValue(parameterValues);
+                .setParameterValue(parameterValuesHttpDst);
         classifierInstances.add(classifierInstanceBuilder.build());
+        ArrayList<ParameterValue> parameterValuesHttpSrc = new ArrayList<>();
         parameterValueBuilder.setName(new ParameterName("proto"))
                 .setIntValue(new Long(6));
-        parameterValues.add(parameterValueBuilder.build());
+        parameterValuesHttpSrc.add(parameterValueBuilder.build());
         parameterValueBuilder.setName(new ParameterName("sourceport"))
                 .setIntValue(new Long(80));
-        parameterValues.add(parameterValueBuilder.build());
+        parameterValuesHttpSrc.add(parameterValueBuilder.build());
         classifierInstanceBuilder.setClassifierDefinitionId(new ClassifierDefinitionId("Classifier-L4"))
                 .setName(new ClassifierName("http-src"))
-                .setParameterValue(parameterValues);
+                .setParameterValue(parameterValuesHttpSrc);
         classifierInstances.add(classifierInstanceBuilder.build());
 
-        parameterValues.clear();
         parameterValueBuilder = new ParameterValueBuilder();
         actionInstanceBuilder.setName(new ActionName("allow1"))
                 .setActionDefinitionId(new ActionDefinitionId("Action-Allow"));
         actionInstances.add(actionInstanceBuilder.build());
         parameterValueBuilder.setName(new ParameterName("sfc-chain-name"))
                 .setStringValue("SFCGBP");
-        parameterValues.add(parameterValueBuilder.build());
+        parameterValuesActionChain.add(parameterValueBuilder.build());
         actionInstanceBuilder.setName(new ActionName("chain1"))
                 .setActionDefinitionId(new ActionDefinitionId("Action-Chain"))
-                .setParameterValue(parameterValues);
+                .setParameterValue(parameterValuesActionChain);
         actionInstances.add(actionInstanceBuilder.build());
 
         subjectFeatureInstancesBuilder.setActionInstance(actionInstances)
@@ -711,5 +688,114 @@ public class CloudConfig<T extends DataObject> {
                 .setId(new NodeId(tunId));
 
         pushToStore(nodeBuilder.build(), nodeIid, LogicalDatastoreType.CONFIGURATION);
+    }
+
+    public void functionPathCreate(String name,
+                                   ArrayList<String> functions)
+    {
+        ServiceFunctionChainBuilder serviceFunctionChainBuilder = new ServiceFunctionChainBuilder();
+        SfcServiceFunctionBuilder sfcServiceFunctionBuilder = new SfcServiceFunctionBuilder();
+        ArrayList<SfcServiceFunction> sfcServiceFunctions = new ArrayList<>();
+
+        for(int i = 0; i < functions.size(); i++){
+            sfcServiceFunctionBuilder.setName(functions.get(i))
+                    .setType(new SftTypeName("service-function-type:".concat(functions.get(i))));
+            sfcServiceFunctions.add(sfcServiceFunctionBuilder.build());
+        }
+        serviceFunctionChainBuilder.setName(new SfcName(name))
+                .setSymmetric(true)
+                .setSfcServiceFunction(sfcServiceFunctions);
+
+        pushToStore(serviceFunctionChainBuilder.build(),
+                InstanceIdentifier.create(ServiceFunctionChains.class)
+                        .child(ServiceFunctionChain.class, new ServiceFunctionChainKey(new SfcName(name))),
+                LogicalDatastoreType.CONFIGURATION);
+
+        ServiceFunctionPathBuilder serviceFunctionPathBuilder = new ServiceFunctionPathBuilder();
+        serviceFunctionPathBuilder.setName(new SfpName(name.concat("-Path")))
+                .setServiceChainName(new SfcName(name))
+                .setStartingIndex((short) 255)
+                .setSymmetric(true);
+
+        pushToStore(serviceFunctionPathBuilder.build(),
+                InstanceIdentifier.create(ServiceFunctionPaths.class)
+                    .child(ServiceFunctionPath.class, new ServiceFunctionPathKey(new SfpName(name.concat("-Path")))),
+                LogicalDatastoreType.CONFIGURATION);
+    }
+
+    @Override
+    public Future<RpcResult<CreateTenantOutput>> createTenant(CreateTenantInput input) {
+        CreateTenantOutputBuilder createTenantOutputBuilder = new CreateTenantOutputBuilder();
+        createTenantOutputBuilder.setUnused(input.getUnused());
+        this.tenantCreate();
+        return RpcResultBuilder.success(createTenantOutputBuilder.build()).buildFuture();
+    }
+
+    @Override
+    public Future<RpcResult<CreateFunctionPathOutput>> createFunctionPath(CreateFunctionPathInput input) {
+        ArrayList<String> functions = new ArrayList<>();
+        CreateFunctionPathOutputBuilder createFunctionPathOutputBuilder = new CreateFunctionPathOutputBuilder();
+        createFunctionPathOutputBuilder.setUnused(input.getUnused());
+        functions.add("dpi");
+        functions.add("firewall");
+
+        functionPathCreate("SFCGBP", functions);
+        return RpcResultBuilder.success(createFunctionPathOutputBuilder.build()).buildFuture();
+    }
+
+    @Override
+    public Future<RpcResult<CreateTunnelOutput>> createTunnel(CreateTunnelInput input) {
+        CreateTunnelOutputBuilder createTunnelOutputBuilder = new CreateTunnelOutputBuilder();
+        createTunnelOutputBuilder.setUnused(input.getUnused());
+        this.tunnelCreate("192.168.50.75", "openflow:6");
+        this.tunnelCreate("192.168.50.70", "openflow:1");
+        return RpcResultBuilder.success(createTunnelOutputBuilder.build()).buildFuture();
+    }
+
+    @Override
+    public Future<RpcResult<CreateEndpointsOutput>> createEndpoints(CreateEndpointsInput input) {
+        CreateEndpointsOutputBuilder createEndpointsOutputBuilder = new CreateEndpointsOutputBuilder();
+        createEndpointsOutputBuilder.setUnused(input.getUnused());
+        this.endpointCreate("webservers",
+                "subnet-10.0.36.0/24",
+                "00:00:00:00:36:02",
+                "10.0.36.2",
+                "vethl-h36-2");
+        this.endpointCreate("clients",
+                "subnet-10.0.35.0/24",
+                "00:00:00:00:35:02",
+                "10.0.35.2",
+                "vethl-h35-2");
+        this.endpointCreate("clients",
+                "subnet-10.0.35.0/24",
+                "00:00:00:00:35:03",
+                "10.0.35.3",
+                "vethl-h35-3");
+        this.endpointCreate("webservers",
+                "subnet-10.0.36.0/24",
+                "00:00:00:00:36:03",
+                "10.0.36.3",
+                "vethl-h36-3");
+        this.endpointCreate("clients",
+                "subnet-10.0.35.0/24",
+                "00:00:00:00:35:04",
+                "10.0.35.4",
+                "vethl-h35-4");
+        this.endpointCreate("webservers",
+                "subnet-10.0.36.0/24",
+                "00:00:00:00:36:04",
+                "10.0.36.4",
+                "vethl-h36-4");
+        this.endpointCreate("clients",
+                "subnet-10.0.35.0/24",
+                "00:00:00:00:35:05",
+                "10.0.35.5",
+                "vethl-h35-5");
+        this.endpointCreate("webservers",
+                "subnet-10.0.36.0/24",
+                "00:00:00:00:36:05",
+                "10.0.36.5",
+                "vethl-h36-5");
+        return RpcResultBuilder.success(createEndpointsOutputBuilder.build()).buildFuture();
     }
 }
