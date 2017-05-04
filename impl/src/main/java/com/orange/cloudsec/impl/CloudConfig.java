@@ -421,7 +421,8 @@ public class CloudConfig<T extends DataObject> implements CloudSecService {
         ArrayList<Subnet> subnets = new ArrayList<>();
         /* Policy */
         PolicyBuilder policyBuilder = new PolicyBuilder();
-        EndpointGroupBuilder endpointGroupBuilder = new EndpointGroupBuilder();
+        EndpointGroupBuilder endpointGroupBuilderProvider = new EndpointGroupBuilder();
+        EndpointGroupBuilder endpointGroupBuilderConsumer = new EndpointGroupBuilder();
         ArrayList<EndpointGroup> endpoints = new ArrayList<>();
         ProviderNamedSelectorBuilder providerNamedSelectorBuilder = new ProviderNamedSelectorBuilder();
         ArrayList<ProviderNamedSelector> providerNamedSelectors = new ArrayList<>();
@@ -485,18 +486,18 @@ public class CloudConfig<T extends DataObject> implements CloudSecService {
         providerNamedSelectorBuilder.setName(selectorName)
                 .setContract(contractIds);
         providerNamedSelectors.add(providerNamedSelectorBuilder.build());
-        endpointGroupBuilder.setId(new EndpointGroupId("webservers"))
+        endpointGroupBuilderProvider.setId(new EndpointGroupId("webservers"))
                 .setName(new Name("webservers"))
                 .setProviderNamedSelector(providerNamedSelectors);
-        endpoints.add(endpointGroupBuilder.build());
+        endpoints.add(endpointGroupBuilderProvider.build());
 
         consumerNamedSelectorBuilder.setName(selectorName)
                 .setContract(contractIds);
         consumerNamedSelectors.add(consumerNamedSelectorBuilder.build());
-        endpointGroupBuilder.setId(new EndpointGroupId("clients"))
+        endpointGroupBuilderConsumer.setId(new EndpointGroupId("clients"))
                 .setName(new Name("clients"))
                 .setConsumerNamedSelector(consumerNamedSelectors);
-        endpoints.add(endpointGroupBuilder.build());
+        endpoints.add(endpointGroupBuilderConsumer.build());
 
         parameterValueBuilder.setName(new ParameterName("proto"))
                 .setIntValue(new Long(1));
@@ -553,7 +554,7 @@ public class CloudConfig<T extends DataObject> implements CloudSecService {
         classifierRefsIcmp.add(classifierRefBuilder.build());
         classifierRefBuilder.setName(new ClassifierName("icmp-out"))
                 .setInstanceName(new ClassifierName("icmp"))
-                .setDirection(HasDirection.Direction.In);
+                .setDirection(HasDirection.Direction.Out);
         classifierRefsIcmp.add(classifierRefBuilder.build());
 
         actionRefBuilder.setName(new ActionName("allow1"))
@@ -586,6 +587,7 @@ public class CloudConfig<T extends DataObject> implements CloudSecService {
 
         ruleBuilder.setName(new RuleName("http-chain-rule-in"))
                 .setActionRef(actionRefsHttpIn)
+                .setOrder(0)
                 .setClassifierRef(classifierRefsHttpIn);
         rulesHttp.add(ruleBuilder.build());
 
@@ -600,6 +602,7 @@ public class CloudConfig<T extends DataObject> implements CloudSecService {
 
         ruleBuilder.setName(new RuleName("http-chain-rule-out"))
                 .setClassifierRef(classifierRefsHttpOut)
+                .setOrder(1)
                 .setActionRef(actionRefsHttpOut);
         rulesHttp.add(ruleBuilder.build());
 
@@ -747,8 +750,8 @@ public class CloudConfig<T extends DataObject> implements CloudSecService {
     public Future<RpcResult<CreateTunnelOutput>> createTunnel(CreateTunnelInput input) {
         CreateTunnelOutputBuilder createTunnelOutputBuilder = new CreateTunnelOutputBuilder();
         createTunnelOutputBuilder.setUnused(input.getUnused());
-        this.tunnelCreate("192.168.50.75", "openflow:6");
-        this.tunnelCreate("192.168.50.70", "openflow:1");
+        this.tunnelCreate("172.24.110.17", "openflow:6");
+        this.tunnelCreate("172.24.110.12", "openflow:1");
         return RpcResultBuilder.success(createTunnelOutputBuilder.build()).buildFuture();
     }
 
