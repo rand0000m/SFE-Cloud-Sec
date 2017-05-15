@@ -10,7 +10,7 @@ echo '_JAVA_OPTIONS="-Djava.net.preferIPv4Stack=true"' >> /etc/environment
 echo 'MAVEN_OPTS="-Xmx1024m"' >> /etc/environment
 
 apt update
-apt install -y -t jessie-backports maven git vim openjdk-8-jdk openjdk-8-jre
+apt install -y -t jessie-backports maven git vim openjdk-8-jdk openjdk-8-jre screen
 
 git clone https://git.rousse.me/mrousse/SFE-Cloud-Sec.git
 cd SFE-Cloud-Sec/ODL-Controller/cloud-sec
