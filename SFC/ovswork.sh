@@ -7,9 +7,8 @@ IPADDR=$3
 BROADCAST=$4
 GWADDR=$5
 MAC=$6
-OF_PORT=$7
-GUESTNAME=$8
-VLANTAG=$9
+GUESTNAME=$7
+VLANTAG=$8
 
 [ "$IPADDR" ] || {
     echo "Syntax:"

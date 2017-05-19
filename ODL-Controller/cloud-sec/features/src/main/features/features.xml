@@ -30,7 +30,6 @@ and is available at http://www.eclipse.org/legal/epl-v10.html
     <feature version="${groupbasedpolicy.version}">odl-groupbasedpolicy-base</feature>
     <feature version="${groupbasedpolicy.version}">odl-groupbasedpolicy-ofoverlay</feature>
     <bundle>mvn:com.orange.cloudsec/cloud-sec-impl/{{VERSION}}</bundle>
-    <bundle>wrap:mvn:jnetpcap/jnetpcap/1.4.r1425-1f</bundle>
   </feature>
   <feature name='odl-cloud-sec-rest' version='${project.version}' description='OpenDaylight :: cloud-sec :: REST'>
     <feature version="${project.version}">odl-cloud-sec</feature>

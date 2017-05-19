@@ -18,3 +18,4 @@ classes
 .metadata
 **.swp
 **.iml
+**/.vagrant/

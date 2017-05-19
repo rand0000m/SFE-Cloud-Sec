@@ -20,7 +20,7 @@ then
 	usage
 fi
 
-addbridge(){
+addBridge(){
 	ovs-vsctl add-br $bridge
 }
 
@@ -38,6 +38,10 @@ setController(){
 	ovs-vsctl set-controller $bridge tcp:$controller:6653
 }
 
+setManager(){
+	ovs-vsctl set-manager tcp:$controller:6640
+}
+
 addGPETunnel(){
 	ovs-vsctl add-port $bridge $bridge-vxlangpe-0 -- set interface $bridge-vxlangpe-0 \
 		type=vxlan \
@@ -53,7 +57,7 @@ addGPETunnel(){
 		options:key=flow
 }
 
-addtunnel(){
+addTunnel(){
 	ovs-vsctl add-port $bridge $bridge-vxlan-0 -- set interface $bridge-vxlan-0 \
 		type=vxlan \
 		options:remote_ip=flow \
@@ -86,16 +90,17 @@ while true ; do
 	esac
 done
 
-addBridge()
+addBridge
 
 if [ ! -z "$datapath_id" ]
 then
-	setDPID()
+	setDPID
 fi
 
-setOfVersion()
-setController()
-addGPETunnel()
-addTunnel()
+setOfVersion
+setController
+setManager
+addGPETunnel
+addTunnel
 
 exit 0
