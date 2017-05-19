@@ -13,9 +13,7 @@ The demo has to be started in 6 steps :
 
 ## Topology
 
-```
-Network drawing
-```
+![Network topology](topology.jpg "Topology")
 
 ## Steps
 
