@@ -1,0 +1,150 @@
+---
+- hosts: controller
+  tasks:
+    - name: Install python2 for Ansible
+      raw: bash -c "test -e /usr/bin/python || (apt -qqy update && apt install -qqy python-minimal python-apt)"
+      register: output
+      changed_when:
+        - output.stdout != ""
+        - output.stdout != "\r\n"
+    - name: Copy OpenDayLight to controller
+      unarchive:
+        src: builds/distribution-karaf-0.5.2-Boron-SR2.tar.gz
+        dest: /root/
+    - name: Create plugin folder
+      file:
+        path: /root/distribution-karaf-0.5.2-Boron-SR2/system/com/orange
+        state: directory
+        mode: 0755
+    - name: Add Jessie-Backports repository
+      apt_repository:
+        repo: deb http://ftp.fr.debian.org/debian jessie-backports main
+        state: present
+    - name: Add Java environment variables
+      blockinfile:
+        path: /etc/environment
+        create: yes
+        block: |
+          JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64/"
+          _JAVA_OPTIONS="-Djava.net.preferIPv4Stack=true"
+          MAVEN_OPTS="-Xmx4096m"
+    - name: Install dependencies
+      apt:
+        update_cache: yes
+        default_release: jessie-backports
+        name: "{{ item }}"
+        state: installed
+      with_items:
+        - maven
+        - git
+        - vim
+        - openjdk-8-jdk
+        - openjdk-8-jre
+        - screen
+        - curl
+    - name: Copy plugin
+      copy:
+        src:  "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      with_items:
+        - { src: 'builds/groupbasedpolicy-0.4.2-Boron-SR2.jar', dest: '/root/distribution-karaf-0.5.2-Boron-SR2/system/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.4.2-Boron-SR2/groupbasedpolicy-0.4.2-Boron-SR2.jar'}
+        - { src: 'builds/groupbasedpolicy-0.4.2-Boron-SR2-javadoc.jar', dest: '/root/distribution-karaf-0.5.2-Boron-SR2/system/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.4.2-Boron-SR2/groupbasedpolicy-0.4.2-Boron-SR2-javadoc.jar'}
+        - { src: 'builds/groupbasedpolicy-0.4.2-Boron-SR2-sources.jar', dest: '/root/distribution-karaf-0.5.2-Boron-SR2/system/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.4.2-Boron-SR2/groupbasedpolicy-0.4.2-Boron-SR2-sources.jar'}
+        - { src: 'builds/groupbasedpolicy-0.4.2-Boron-SR2-tests.jar', dest: '/root/distribution-karaf-0.5.2-Boron-SR2/system/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.4.2-Boron-SR2/groupbasedpolicy-0.4.2-Boron-SR2-tests.jar'}
+        - { src: 'builds/cloudsec/', dest: '/root/distribution-karaf-0.5.2-Boron-SR2/system/com/orange/cloudsec'}
+
+- hosts: sfc
+  tasks:
+    - name: Install python2 for Ansible
+      raw: bash -c "test -e /usr/bin/python || (apt -qqy update && apt install -qqy python-minimal python-apt)"
+      register: output
+      changed_when:
+        - output.stdout != ""
+        - output.stdout != "\r\n"
+    - name: Install dependencies
+      apt:
+        update_cache: yes
+        name: "{{ item }}"
+        state: installed
+      with_items:
+        - git
+        - vim
+        - dkms
+        - uuid-runtime
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - software-properties-common
+    - name: Create temporary folder
+      file:
+        path: /root/tmp
+        state: directory
+        mode: 0755
+    - name: Copy Openvswitch packages
+      copy:
+        src:  "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      with_items:
+        - { src: 'builds/openvswitch-common_2.5.90-1_amd64.deb', dest: '/root/tmp/openvswitch-common_2.5.90-1_amd64.deb'}
+        - { src: 'builds/openvswitch-switch_2.5.90-1_amd64.deb', dest: '/root/tmp/openvswitch-switch_2.5.90-1_amd64.deb'}
+        - { src: 'builds/openvswitch-datapath-dkms_2.5.90-1_all.deb', dest: '/root/tmp/openvswitch-datapath-dkms_2.5.90-1_all.deb'}
+    - name: Install OpenVSwitch
+      apt:
+        deb: "{{ item }}"
+        state: installed
+      with_items:
+        - '/root/tmp/openvswitch-common_2.5.90-1_amd64.deb'
+        - '/root/tmp/openvswitch-switch_2.5.90-1_amd64.deb'
+        - '/root/tmp/openvswitch-datapath-dkms_2.5.90-1_all.deb'
+    - name: Add docker repo key
+      apt_key:
+        url: 'https://download.docker.com/linux/debian/gpg'
+        state: present
+    - name: Add docker repo entry
+      apt_repository:
+        repo: deb https://download.docker.com/linux/debian jessie stable
+        state: present
+    - name: Install Docker
+      apt: 
+        update_cache: yes
+        name: docker-ce
+        state: installed
+
+- hosts: sff:sf
+  tasks:
+    - name: Install python2 for Ansible
+      raw: bash -c "test -e /usr/bin/python || (apt -qqy update && apt install -qqy python-minimal python-apt)"
+      register: output
+      changed_when:
+        - output.stdout != ""
+        - output.stdout != "\r\n"
+    - name: Install dependencies
+      apt:
+        update_cache: yes
+        name: "{{ item }}"
+        state: installed
+      with_items:
+        - git
+        - vim
+        - dkms
+    - name: Create temporary folder
+      file:
+        path: /root/tmp
+        state: directory
+        mode: 0755
+    - name: Copy Openvswitch packages
+      copy:
+        src:  "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      with_items:
+        - { src: 'builds/openvswitch-common_2.5.90-1_amd64.deb', dest: '/root/tmp/openvswitch-common_2.5.90-1_amd64.deb'}
+        - { src: 'builds/openvswitch-switch_2.5.90-1_amd64.deb', dest: '/root/tmp/openvswitch-switch_2.5.90-1_amd64.deb'}
+        - { src: 'builds/openvswitch-datapath-dkms_2.5.90-1_all.deb', dest: '/root/tmp/openvswitch-datapath-dkms_2.5.90-1_all.deb'}
+    - name: Install OpenVSwitch
+      apt:
+        deb: "{{ item }}"
+        state: installed
+      with_items:
+        - '/root/tmp/openvswitch-common_2.5.90-1_amd64.deb'
+        - '/root/tmp/openvswitch-switch_2.5.90-1_amd64.deb'
+        - '/root/tmp/openvswitch-datapath-dkms_2.5.90-1_all.deb'
