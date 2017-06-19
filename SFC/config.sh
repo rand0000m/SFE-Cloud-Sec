@@ -1,7 +1,6 @@
 #!/bin/bash
 
 bridge=$(hostname)
-datapath_id=""
 controller="127.0.0.1"
 bridge_padding=$(printf '%0.1s' " "{1..16})
 bridge_padded_len=16
@@ -11,7 +10,6 @@ usage(){
 	printf "Configuration script for SFC :\n"
 	printf "\t--controller=127.0.0.1   : IP address of the ODL controller\n"
 	printf "\t--bridge=$bridge_padded: bridge name\n"
-	printf "\t--datapath-id            : ID of the datapath of the switch (optionnal)\n"
 	printf "\t-h                       : prints this message\n"
 }
 
@@ -22,12 +20,6 @@ fi
 
 addBridge(){
 	ovs-vsctl add-br $bridge
-}
-
-setDPID(){
-	dpid=$(printf %016d $datapath_id);
-	ovs-vsctl set bridge $bridge other-config:datapath-id=$dpid
-	echo $dpid
 }
 
 setOfVersion(){
@@ -64,7 +56,7 @@ addTunnel(){
 		options:key=flow
 }
 
-OPTS=$( getopt -o h -l controller:,bridge:,datapath-id: -- "$@" )
+OPTS=$( getopt -o h -l controller:,bridge: -- "$@" )
 if [ $? != 0 ]
 then
 	exit 1
@@ -80,9 +72,6 @@ while true ; do
 		--bridge)
 			bridge=$2
 			shift 2;;
-		--datapath-id)
-			datapath_id=$2
-			shift 2;;
 		--controller) 
 			controller=$2
 			shift 2;;
@@ -91,11 +80,6 @@ while true ; do
 done
 
 addBridge
-
-if [ ! -z "$datapath_id" ]
-then
-	setDPID
-fi
 
 setOfVersion
 setController
