@@ -1,0 +1,27 @@
+---
+- hosts: controller
+  vars:
+    karaf_path: /root/distribution-karaf-0.5.2-Boron-SR2
+  tasks:
+    - name: Delete logs
+      file:
+        state: absent
+        path: "{{karaf_path}}/data/log/karaf.log"
+    - name: Start karaf
+      command: "{{karaf_path}}/bin/start"
+    - name: Wait for karaf start successfully
+      wait_for:
+        search_regex: Karaf started in
+        path: "{{karaf_path}}/data/log/karaf.log"
+        state: present
+    - name: Add dependencies
+      command: "{{karaf_path}}/bin/client \"feature:install odl-groupbasedpolicy-ofoverlay odl-groupbasedpolicy-ui odl-restconf\""
+    - name: Add plugin repo
+      command: "{{karaf_path}}/bin/client \"repo-add mvn:com.orange.cloudsec/cloud-sec-features/0.1.0-SNAPSHOT/xml/features\""
+    - name: Add plugin
+      command: "{{karaf_path}}/bin/client \"feature:install odl-cloud-sec odl-cloud-sec-api\""
+    - name: Configure plugin
+      tags:
+        - configure
+      script: ../ODL-Controller/config-sf.sh 127.0.0.1
+

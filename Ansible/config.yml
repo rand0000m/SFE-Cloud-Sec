@@ -1,0 +1,40 @@
+---
+- hosts: sfc
+  vars:
+    bridge_name_long: "{{ inventory_hostname | hash('sha1') }}"
+    bridge_name: "b{{ bridge_name_long[0:3] }}"
+    sfc_num: "{{ inventory_hostname | splitext | last | regex_replace('\\.','') | int - 9 }}"
+  tasks:
+    - name: Copy n Launch config script
+      script: ../SFC/config.sh --bridge={{ bridge_name }} --controller={{ controller_ip }} --datapath-id={{ sfc_num }}
+    #- name: debug
+    #  tags:
+    #    - debug
+    #  debug: var=hostvars[inventory_hostname]["dockers"]
+    - name: Copy docker creation script to tmp
+      copy:
+        src: ../SFC/ovswork.sh
+        dest: /tmp/ovswork.sh
+    - name: Add docker instances
+      script: ../SFC/add-cont.sh --name={{ item.name }} --ip={{ item.ip }} --mac={{ item.mac }} --broadcast={{ item.broadcast }} --router-ip={{ item.routerIp }} --switch={{ bridge_name }}
+      when: item.switch == inventory_hostname
+      with_items: "{{ hostvars[inventory_hostname][\"dockers\"] }}"
+      tags:
+        - docker
+- hosts: sff
+  tasks:
+    - name: Copy n Launch config script
+      script: ../SFF/config.sh {{ controller_ip }}
+- hosts: sf
+  vars:
+    bridge_name_long: "{{ inventory_hostname | hash('sha1') }}"
+    bridge_name: "b{{ bridge_name_long[0:3] }}"
+  tasks:
+    - name: Copy n Launch config script
+      script: ../SF/config.sh {{ bridge_name }}
+    - name: Set flows
+      script: ../SF/set-flows.sh {{ bridge_name }} {{ inventory_hostname }}
+      # TODO: Careful with dat 'inventory_hostname' : could be a fqdn, and set-flows.sh would not like it
+      tags:
+        - set-flows
+
