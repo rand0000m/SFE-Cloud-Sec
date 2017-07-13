@@ -20,6 +20,10 @@ module cloud-sec {
             leaf name {
                 type string;
             }
+
+            leaf proxy {
+                type inet:ip-address;
+            }
         }
     }
 

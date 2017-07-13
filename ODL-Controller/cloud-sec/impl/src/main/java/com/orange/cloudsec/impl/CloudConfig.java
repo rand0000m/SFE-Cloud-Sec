@@ -48,12 +48,16 @@ import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sft.rev1407
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sft.rev140701.service.function.types.ServiceFunctionType;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sft.rev140701.service.function.types.ServiceFunctionTypeBuilder;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sft.rev140701.service.function.types.ServiceFunctionTypeKey;
+import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sl.rev140701.Vxlan;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sl.rev140701.VxlanGpe;
 import org.opendaylight.yang.gen.v1.urn.cisco.params.xml.ns.yang.sfc.sl.rev140701.data.plane.locator.locator.type.IpBuilder;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpAddress;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.IpPrefix;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.inet.types.rev130715.PortNumber;
 import org.opendaylight.yang.gen.v1.urn.ietf.params.xml.ns.yang.ietf.yang.types.rev130715.MacAddress;
+import org.opendaylight.yang.gen.v1.urn.intel.params.xml.ns.yang.sfc.sf.proxy.rev160125.SfLocatorProxyAugmentation;
+import org.opendaylight.yang.gen.v1.urn.intel.params.xml.ns.yang.sfc.sf.proxy.rev160125.SfLocatorProxyAugmentationBuilder;
+import org.opendaylight.yang.gen.v1.urn.intel.params.xml.ns.yang.sfc.sf.proxy.rev160125.proxy.ProxyDataPlaneLocatorBuilder;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.common.rev140421.*;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.common.rev140421.TenantId;
 import org.opendaylight.yang.gen.v1.urn.opendaylight.groupbasedpolicy.endpoint.rev140421.RegisterEndpointInputBuilder;
@@ -280,22 +284,49 @@ public class CloudConfig<T extends DataObject> implements CloudSecService {
                     (org.opendaylight.yang.gen.v1.urn.opendaylight.params.xml.ns.yang.
                             cloud.sec.rev150105.service.function.registry.ServiceFunction) obj;
 
-            // Création du DataPlaneLocator
-            sfDPBuilder.setName(new SfDataPlaneLocatorName(cloudSF.getName()))
-                    .setLocatorType(
-                            new IpBuilder()
-                                    .setIp(new IpAddress(cloudSF.getAddress()))
-                                    .setPort(new PortNumber(6633))
-                                    .build()
-                    )
-                    .setServiceFunctionForwarder(new SffName(""))
-                    .setTransport(VxlanGpe.class);
+            SfLocatorProxyAugmentationBuilder sfLocatorProxyAugmentationBuilder =
+                    new SfLocatorProxyAugmentationBuilder();
+            ProxyDataPlaneLocatorBuilder proxyDataPlaneLocatorBuilder = new ProxyDataPlaneLocatorBuilder();
+
+            if(cloudSF.getProxy() != null) {
+                // Création du DataPlaneLocator
+                proxyDataPlaneLocatorBuilder.setLocatorType(
+                        new IpBuilder()
+                                .setIp(cloudSF.getProxy())
+                                .setPort(new PortNumber(4790))
+                                .build()
+                )
+                        .setTransport(VxlanGpe.class);
+                sfLocatorProxyAugmentationBuilder.setProxyDataPlaneLocator(proxyDataPlaneLocatorBuilder.build());
+
+                sfDPBuilder.setName(new SfDataPlaneLocatorName(cloudSF.getName()))
+                        .setLocatorType(
+                                new IpBuilder()
+                                        .setIp(new IpAddress(cloudSF.getAddress()))
+                                        .setPort(new PortNumber(4789))
+                                        .build()
+                        )
+                        .setServiceFunctionForwarder(new SffName(""))
+                        .setTransport(Vxlan.class)
+                        .addAugmentation(SfLocatorProxyAugmentation.class, sfLocatorProxyAugmentationBuilder.build());
+            }else {
+                // Création du DataPlaneLocator
+                sfDPBuilder.setName(new SfDataPlaneLocatorName(cloudSF.getName()))
+                        .setLocatorType(
+                                new IpBuilder()
+                                        .setIp(new IpAddress(cloudSF.getAddress()))
+                                        .setPort(new PortNumber(4790))
+                                        .build()
+                        )
+                        .setServiceFunctionForwarder(new SffName(""))
+                        .setTransport(VxlanGpe.class);
+            }
+
             ArrayList<SfDataPlaneLocator> sfDPList = new ArrayList();
             sfDPList.add(sfDPBuilder.build());
 
             // Création du SF pour SFC
             builder.setName(new SfName(cloudSF.getName()))
-                    .setNshAware(true)
                     .setType(new SftTypeName("service-function-type:".concat(cloudSF.getName())))
                     .setIpMgmtAddress(new IpAddress(cloudSF.getAddress()))
                     .setSfDataPlaneLocator(sfDPList);
@@ -303,8 +334,7 @@ public class CloudConfig<T extends DataObject> implements CloudSecService {
 
             ServiceFunctionTypeBuilder serviceFunctionTypeBuilder = new ServiceFunctionTypeBuilder();
             serviceFunctionTypeBuilder.setNshAware(true)
-                    .setBidirectionality(true)
-                    .setSymmetry(true)
+                    .setBidirectional(true)
                     .setType(new SftTypeName(cloudSF.getName()));
             pushToStore(serviceFunctionTypeBuilder.build(), InstanceIdentifier.create(ServiceFunctionTypes.class)
                     .child(ServiceFunctionType.class, new ServiceFunctionTypeKey(
@@ -337,12 +367,12 @@ public class CloudConfig<T extends DataObject> implements CloudSecService {
             InstanceIdentifier<ServiceFunction> sfIid = null;
 
             ipBuilder.setIp(new IpAddress(cloudSFF.getAddress()))
-                    .setPort(new PortNumber(6633));
+                    .setPort(new PortNumber(4790));
             dpBuilder.setLocatorType(ipBuilder.build())
                     .setTransport(VxlanGpe.class);
             ovsOptionsBuilder.setExts("gpe")
                     .setRemoteIp("flow")
-                    .setDstPort("6633")
+                    .setDstPort("4790")
                     .setKey("flow")
                     .setNsp("flow")
                     .setNsi("flow")
@@ -685,7 +715,7 @@ public class CloudConfig<T extends DataObject> implements CloudSecService {
         tunnelBuilder.setIp(new IpAddress(ipAddr.toCharArray()))
                 .setTunnelType(TunnelTypeVxlanGpe.class)
                 .setNodeConnectorId(new NodeConnectorId(tunId.concat(":1")))
-                .setPort(new PortNumber(6633));
+                .setPort(new PortNumber(4790));
         tunnels.add(tunnelBuilder.build());
 
         tunnelBuilder.setIp(new IpAddress(ipAddr.toCharArray()))
