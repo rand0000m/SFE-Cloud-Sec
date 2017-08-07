@@ -13,6 +13,7 @@ First, we need to build OpenVSwitch and Cloud-Sec, then to instantiate the VMs, 
 ### Build dependencies
 
 It takes roughtly 20 minutes to build the plugin and 15 to build OVS on a i7 + 16Go RAM.
+
 ```
 cd Common/DockerBuildOVS
 docker build -t build_ovs .
@@ -31,13 +32,13 @@ cd ../../
 
 Then we need to link the packages to the build folder of the Ansible folder.
 
-```
+``̀ 
 mkdir Ansible/builds
 cd Common
 ln -s `pwd`/DockerBuildPlugin/build/cloudsec ../Ansible/builds/
 ln -s `pwd`/DockerBuildOVS/build/*.deb ../Ansible/builds/
 cd ../
-```
+``̀ 
 
 Download the ODL prebuilt package :
 
