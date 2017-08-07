@@ -32,11 +32,13 @@ cd ../../
 
 Then we need to link the packages to the build folder of the Ansible folder.
 
-  mkdir Ansible/builds
-  cd Common
-  ln -s `pwd`/DockerBuildPlugin/build/cloudsec ../Ansible/builds/
-  ln -s `pwd`/DockerBuildOVS/build/*.deb ../Ansible/builds/
-  cd ../
+```
+mkdir Ansible/builds
+cd Common
+ln -s $PWD/DockerBuildPlugin/build/cloudsec ../Ansible/builds/
+ln -s $PWD/DockerBuildOVS/build/*.deb ../Ansible/builds/
+cd ../
+```
 
 Download the ODL prebuilt package :
 
