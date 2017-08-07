@@ -42,7 +42,7 @@ cd ../
 
 Download the ODL prebuilt package :
 
-``̀ 
+```
 cd Ansible/builds
 wget https://nexus.opendaylight.org/content/repositories/opendaylight.release/org/opendaylight/integration/distribution-karaf/0.6.0-Carbon/distribution-karaf-0.6.0-Carbon.tar.gz
 cd ../../
