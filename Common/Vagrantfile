@@ -9,7 +9,7 @@ Vagrant.configure("2") do |config|
     config.vm.define "cloud#{n+1}", autostart: true do |compute|
       vm_ip = SUBNET + "#{n+10}"
       compute.vm.box = "ksertonys/minijessie"
-      compute.vm.box_version = "8.8.0"
+      compute.vm.box_version = "0.0.1"
       compute.vm.hostname = "cloud#{n+1}"
       compute.vm.network "private_network", ip: "#{vm_ip}"
       compute.vm.provider "virtualbox" do |vb|

@@ -9,11 +9,11 @@
         - output.stdout != "\r\n"
     - name: Copy OpenDayLight to controller
       unarchive:
-        src: builds/distribution-karaf-0.5.2-Boron-SR2.tar.gz
+        src: builds/distribution-karaf-0.6.0-Carbon.tar.gz
         dest: /root/
     - name: Create plugin folder
       file:
-        path: /root/distribution-karaf-0.5.2-Boron-SR2/system/com/orange
+        path: /root/distribution-karaf-0.6.0-Carbon/system/com/orange
         state: directory
         mode: 0755
     - name: Add Jessie-Backports repository
@@ -47,11 +47,11 @@
         src:  "{{ item.src }}"
         dest: "{{ item.dest }}"
       with_items:
-        - { src: 'builds/groupbasedpolicy-0.4.2-Boron-SR2.jar', dest: '/root/distribution-karaf-0.5.2-Boron-SR2/system/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.4.2-Boron-SR2/groupbasedpolicy-0.4.2-Boron-SR2.jar'}
-        - { src: 'builds/groupbasedpolicy-0.4.2-Boron-SR2-javadoc.jar', dest: '/root/distribution-karaf-0.5.2-Boron-SR2/system/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.4.2-Boron-SR2/groupbasedpolicy-0.4.2-Boron-SR2-javadoc.jar'}
-        - { src: 'builds/groupbasedpolicy-0.4.2-Boron-SR2-sources.jar', dest: '/root/distribution-karaf-0.5.2-Boron-SR2/system/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.4.2-Boron-SR2/groupbasedpolicy-0.4.2-Boron-SR2-sources.jar'}
-        - { src: 'builds/groupbasedpolicy-0.4.2-Boron-SR2-tests.jar', dest: '/root/distribution-karaf-0.5.2-Boron-SR2/system/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.4.2-Boron-SR2/groupbasedpolicy-0.4.2-Boron-SR2-tests.jar'}
-        - { src: 'builds/cloudsec/', dest: '/root/distribution-karaf-0.5.2-Boron-SR2/system/com/orange/cloudsec'}
+        - { src: 'builds/groupbasedpolicy-0.5.0-Carbon.jar', dest: '/root/distribution-karaf-0.6.0-Carbon/system/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.5.0-Carbon/groupbasedpolicy-0.5.0-Carbon.jar'}
+        - { src: 'builds/groupbasedpolicy-0.5.0-Carbon-javadoc.jar', dest: '/root/distribution-karaf-0.6.0-Carbon/system/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.5.0-Carbon/groupbasedpolicy-0.5.0-Carbon-javadoc.jar'}
+        - { src: 'builds/groupbasedpolicy-0.5.0-Carbon-sources.jar', dest: '/root/distribution-karaf-0.6.0-Carbon/system/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.5.0-Carbon/groupbasedpolicy-0.5.0-Carbon-sources.jar'}
+        - { src: 'builds/groupbasedpolicy-0.5.0-Carbon-tests.jar', dest: '/root/distribution-karaf-0.6.0-Carbon/system/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.5.0-Carbon/groupbasedpolicy-0.5.0-Carbon-tests.jar'}
+        - { src: 'builds/cloudsec/', dest: '/root/distribution-karaf-0.6.0-Carbon/system/com/orange/cloudsec'}
 
 - hosts: sfc
   tasks:

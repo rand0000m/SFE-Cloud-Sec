@@ -11,8 +11,8 @@ cd /build
 #cd SFE-Cloud-Sec/ODL-Controller/cloud-sec
 #mkdir ~/.m2
 #wget -q -O - https://raw.githubusercontent.com/opendaylight/odlparent/master/settings.xml > ~/.m2/settings.xml
-#wget "https://nexus.opendaylight.org/content/repositories/public/org/opendaylight/groupbasedpolicy/l2-l3-domain-extension/0.4.2-Boron-SR2/l2-l3-domain-extension-0.4.2-Boron-SR2-javadoc.jar"
-#mvn install:install-file -DgroupId=org.opendaylight.groupbasedpolicy -DartifactId=l2-l3-domain-extension -Dversion=0.4.2-Boron-SR2 -Dpackaging=bundle -Dfile=l2-l3-domain-extension-0.4.2-Boron-SR2-javadoc.jar
+#wget "https://nexus.opendaylight.org/content/repositories/public/org/opendaylight/groupbasedpolicy/l2-l3-domain-extension/0.5.0-Carbon/l2-l3-domain-extension-0.5.0-Carbon-javadoc.jar"
+#mvn install:install-file -DgroupId=org.opendaylight.groupbasedpolicy -DartifactId=l2-l3-domain-extension -Dversion=0.5.0-Carbon -Dpackaging=bundle -Dfile=l2-l3-domain-extension-0.5.0-Carbon-javadoc.jar
 #mvn clean install -DskipTests
 #cp -r ~/.m2/repository/com/orange/cloudsec /build/cloudsec
 
@@ -49,9 +49,9 @@ index fa5f7c7..0e21766 100755
 -- 
 2.1.4
 " > export_endpoint.patch
-git checkout release/boron-sr2
+git checkout release/carbon
 git am < export_endpoint.patch
 mvn install -DskipTests
-cp -r ~/.m2/repository/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.4.2-Boron-SR2/*.jar /build/
+cp -r ~/.m2/repository/org/opendaylight/groupbasedpolicy/groupbasedpolicy/0.5.0-Carbon/*.jar /build/
 EOSU
 

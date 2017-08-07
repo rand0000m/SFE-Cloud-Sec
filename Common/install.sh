@@ -1,7 +1,7 @@
 #!/bin/bash
 
-wget "https://nexus.opendaylight.org/content/repositories/opendaylight.release/org/opendaylight/integration/distribution-karaf/0.5.2-Boron-SR2/distribution-karaf-0.5.2-Boron-SR2.zip"
-unzip distribution-karaf-0.5.2-Boron-SR2.zip
+wget "https://nexus.opendaylight.org/content/repositories/opendaylight.release/org/opendaylight/integration/distribution-karaf/0.6.0-Carbon/distribution-karaf-0.6.0-Carbon.zip"
+unzip distribution-karaf-0.6.0-Carbon.zip
 
 echo "deb http://ftp.fr.debian.org/debian jessie-backports main" >> /etc/apt/sources.list
 
@@ -17,8 +17,8 @@ git clone https://git.rousse.me/mrousse/SFE-Cloud-Sec.git
 cd SFE-Cloud-Sec
 mkdir ~/.m2
 wget -q -O - https://raw.githubusercontent.com/opendaylight/odlparent/master/settings.xml > ~/.m2/settings.xml
-wget "https://nexus.opendaylight.org/content/repositories/public/org/opendaylight/groupbasedpolicy/l2-l3-domain-extension/0.4.2-Boron-SR2/l2-l3-domain-extension-0.4.2-Boron-SR2-javadoc.jar"
-mvn install:install-file -DgroupId=org.opendaylight.groupbasedpolicy -DartifactId=l2-l3-domain-extension -Dversion=0.4.2-Boron-SR2 -Dpackaging=bundle -Dfile=l2-l3-domain-extension-0.4.2-Boron-SR2-javadoc.jar
+wget "https://nexus.opendaylight.org/content/repositories/public/org/opendaylight/groupbasedpolicy/l2-l3-domain-extension/0.5.0-Carbon/l2-l3-domain-extension-0.5.0-Carbon-javadoc.jar"
+mvn install:install-file -DgroupId=org.opendaylight.groupbasedpolicy -DartifactId=l2-l3-domain-extension -Dversion=0.5.0-Carbon -Dpackaging=bundle -Dfile=l2-l3-domain-extension-0.5.0-Carbon-javadoc.jar
 mvn clean install -DskipTests
-mkdir -p /root/distribution-karaf-0.5.2-Boron-SR2/system/com/orange
-cp -r ~/.m2/repository/com/orange/cloudsec /root/distribution-karaf-0.5.2-Boron-SR2/system/com/orange
+mkdir -p /root/distribution-karaf-0.6.0-Carbon/system/com/orange
+cp -r ~/.m2/repository/com/orange/cloudsec /root/distribution-karaf-0.6.0-Carbon/system/com/orange

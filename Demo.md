@@ -32,19 +32,17 @@ cd ../../
 
 Then we need to link the packages to the build folder of the Ansible folder.
 
-``̀ 
-mkdir Ansible/builds
-cd Common
-ln -s `pwd`/DockerBuildPlugin/build/cloudsec ../Ansible/builds/
-ln -s `pwd`/DockerBuildOVS/build/*.deb ../Ansible/builds/
-cd ../
-``̀ 
+  mkdir Ansible/builds
+  cd Common
+  ln -s `pwd`/DockerBuildPlugin/build/cloudsec ../Ansible/builds/
+  ln -s `pwd`/DockerBuildOVS/build/*.deb ../Ansible/builds/
+  cd ../
 
 Download the ODL prebuilt package :
 
 ``̀ 
 cd Ansible/builds
-wget https://nexus.opendaylight.org/content/repositories/opendaylight.release/org/opendaylight/integration/distribution-karaf/0.5.2-Boron-SR2/distribution-karaf-0.5.2-Boron-SR2.tar.gz 
+wget https://nexus.opendaylight.org/content/repositories/opendaylight.release/org/opendaylight/integration/distribution-karaf/0.6.0-Carbon/distribution-karaf-0.6.0-Carbon.tar.gz
 cd ../../
 ```
 
