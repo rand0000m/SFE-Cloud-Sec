@@ -30,6 +30,14 @@ docker run --rm --name build_plugin -v `pwd`/build:/build build_plugin
 cd ../../
 ```
 
+```
+cd Common/DockerBuildGBP
+docker build -t build_gbp .
+mkdir build
+docker run --rm --name build_gbp -v `pwd`/build:/build build_gbp
+cd ../../
+```
+
 Then we need to link the packages to the build folder of the Ansible folder.
 
 ```
@@ -37,6 +45,7 @@ mkdir Ansible/builds
 cd Common
 ln -s $PWD/DockerBuildPlugin/build/cloudsec ../Ansible/builds/
 ln -s $PWD/DockerBuildOVS/build/*.deb ../Ansible/builds/
+ln -s $PWD/DockerBuildGBP/build/*.jar ../Ansible/builds/
 cd ../
 ```
 
