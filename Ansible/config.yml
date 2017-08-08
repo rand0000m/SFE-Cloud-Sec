@@ -15,6 +15,7 @@
       copy:
         src: ../SFC/ovswork.sh
         dest: /tmp/ovswork.sh
+        mode: 0755
     - name: Add docker instances
       script: ../SFC/add-cont.sh --name={{ item.name }} --ip={{ item.ip }} --mac={{ item.mac }} --broadcast={{ item.broadcast }} --router-ip={{ item.routerIp }} --switch={{ bridge_name }}
       when: item.switch == inventory_hostname
