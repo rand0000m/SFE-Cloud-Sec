@@ -47,7 +47,7 @@ addGPETunnel(){
 		type=vxlan \
 		options:exts=gpe \
 		options:remote_ip=flow \
-		options:dst_port=6633 \
+		options:dst_port=4790 \
 		options:nshc1=flow \
 		options:nshc2=flow \
 		options:nshc3=flow \

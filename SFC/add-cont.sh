@@ -32,7 +32,7 @@ launchContainer(){
 }
 
 linkContainer(){
-	sh /vagrant/SFC/ovswork.sh $switch $container_id $container_ip $container_broadcast $container_router_ip $container_mac $name
+	sh /tmp/ovswork.sh $switch $container_id $container_ip $container_broadcast $container_router_ip $container_mac $name
 }
 
 OPTS=$( getopt -o h -l container-image:,name:,switch:,ip:,broadcast:,mac:,router-ip: -- "$@" )
