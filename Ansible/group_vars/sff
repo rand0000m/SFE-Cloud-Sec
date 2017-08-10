@@ -4,5 +4,5 @@ sff:
     ip: 192.168.33.11
     bridge_name: sw2
   - name: cloud4
-    ip: 192.168.33.14
+    ip: 192.168.33.13
     bridge_name: sw4
