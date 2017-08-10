@@ -75,6 +75,79 @@ Verify that all hosts answer to pings before going on with the script.
 
 ```
 ansible-playbook -i hosts -u root -s install.yml
+../Common/reboot.sh
 ansible-playbook -i hosts -u root -s config.yml
-ansible-playbook -i hosts -u root -s launch.yml
+```
+
+### Start the Demo
+
+All those commands are done on the ODL controller at cloud7 (`ssh root@192.168.33.16`).
+
+```
+cd /root/distribution-karaf-0.6.0-Carbon
+screen -mS odl-controller bin/start
+
+opendaylight> feature:install odl-groupbasedpolicy-ofoverlay odl-groupbasedpolicy-ui odl-restconf
+opendaylight> repo-add mvn:com.orange.cloudsec/cloud-sec-features/0.1.0-SNAPSHOT/xml/features
+opendaylight> feature:install odl-cloud-sec odl-cloud-sec-api
+
+<Ctrl-A><Ctrl-D>
+
+curl -s -H "Content-Type: application/json" -u admin:admin "http://127.0.0.1:8181/restconf/config/cloud-sec:service-function-registry" -X POST \
+  -d '{"service-function":[{"address":"192.168.33.12","name":"firewall"}]}'
+curl -s -H "Content-Type: application/json" -u admin:admin "http://127.0.0.1:8181/restconf/config/cloud-sec:service-function-registry" -X POST \
+  -d '{"service-function":[{"address":"192.168.33.14","name":"dpi"}]}'
+
+sleep 3
+curl -s -H "Content-Type: application/json" -u admin:admin "http://127.0.0.1:8181/restconf/config/cloud-sec:service-function-forwarder-registry" -X POST \
+  -d '{"service-function-forwarder":[{"address":"192.168.33.11","name":"sff1","ovs-bridge":"sw2","service-functions":[{"sf-name":"firewall"}]}]}'
+curl -s -H "Content-Type: application/json" -u admin:admin "http://127.0.0.1:8181/restconf/config/cloud-sec:service-function-forwarder-registry" -X POST \
+  -d '{"service-function-forwarder":[{"address":"192.168.33.13","name":"sff2","ovs-bridge":"sw4","service-functions":[{"sf-name":"dpi"}]}]}'
+
+sleep 3
+curl -s -H "Content-Type: application/json" -u admin:admin "http://127.0.0.1:8181/restconf/operations/cloud-sec:create-function-path" -X POST -d '{"input":{"unused":"test"}}'; echo
+curl -s -H "Content-Type: application/json" -u admin:admin "http://127.0.0.1:8181/restconf/operations/cloud-sec:create-tunnel" -X POST -d '{"input":{"unused":"test"}}'; echo
+
+sleep 3
+curl -s -H "Content-Type: application/json" -u admin:admin "http://127.0.0.1:8181/restconf/operations/cloud-sec:create-tenant" -X POST -d '{"input":{"unused":"test"}}'; echo
+curl -s -H "Content-Type: application/json" -u admin:admin "http://127.0.0.1:8181/restconf/operations/cloud-sec:create-endpoints" -X POST -d '{"input":{"unused":"test"}}'; echo
+```
+
+At this point, the demo should be ready.
+
+### Testing
+
+#### Ping test
+
+```
+ssh root@192.168.33.10
+cloud1# docker attach h35-2
+h35-2# ping 10.0.36.4
+**SHOULD WORK**
+# Detach from docker using <Ctrl + P> <Ctrl + Q>
+cloud1# exit
+```
+
+#### HTTP test
+
+```
+ssh root@192.168.33.15
+cloud6# docker attach h36-4
+h36-4# python -m SimpleHTTPServer 80
+<Ctrl-P><Ctrl-Q>
+cloud6# exit
+ssh root@192.168.33.10
+cloud1# docker attach h35-2
+h35-2# curl http://10.0.36.4
+**SHOUD RETURN THE FOLDERS IN / OF h36-4**
+# Detach from docker using <Ctrl + P> <Ctrl + Q>
+cloud1# exit
+```
+
+### Clean
+
+A script has been written to clean the demonstration : 
+
+```
+Common/clean-ansible.sh
 ```
