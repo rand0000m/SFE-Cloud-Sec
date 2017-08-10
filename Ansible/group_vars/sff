@@ -1,0 +1,8 @@
+---
+sff:
+  - name: cloud2
+    ip: 192.168.33.11
+    bridge_name: sw2
+  - name: cloud4
+    ip: 192.168.33.14
+    bridge_name: sw4

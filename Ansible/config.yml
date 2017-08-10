@@ -25,7 +25,9 @@
 - hosts: sff
   tasks:
     - name: Copy n Launch config script
-      script: ../SFF/config.sh {{ controller_ip }}
+      script: ../SFF/config.sh {{ controller_ip }} {{ item.bridge_name }}
+      when: item.ip == inventory_hostname
+      with_items: "{{ hostvars[inventory_hostname][\"sff\"] }}"
 - hosts: sf
   vars:
     bridge_name_long: "{{ inventory_hostname | hash('sha1') }}"
@@ -34,8 +36,9 @@
     - name: Copy n Launch config script
       script: ../SF/config.sh {{ bridge_name }}
     - name: Set flows
-      script: ../SF/set-flows.sh {{ bridge_name }} {{ inventory_hostname }}
-      # TODO: Careful with dat 'inventory_hostname' : could be a fqdn, and set-flows.sh would not like it
+      script: ../SF/set-flows.sh {{ bridge_name }} {{ item.sff_ip }}
+      when: item.ip == inventory_hostname
+      with_items: "{{ hostvars[inventory_hostname][\"sf\"] }}"
       tags:
         - set-flows
 
